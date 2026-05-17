@@ -1,0 +1,74 @@
+%% ----------------ATENCIÓ-----------------------
+%% Codificació UTF-8.
+%%-----------------------------------------------
+
+\documentclass[GINF,catalan]{TFGEPSUIB}
+
+\usepackage{amsmath,mathtools}
+\usepackage{listings}
+\usepackage[printonlyused]{acronym}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[backref, colorlinks=true, allcolors=black]{hyperref}
+
+%----------------------------------------------
+% Dades de la Portada
+%----------------------------------------------
+
+\title{Aprenentatge per Reforç Profund per al Joc del Truc}
+
+\author{Josep Ferriol Font}
+
+\tutor{[NOM TUTOR]}
+
+\date{Any acadèmic 2025-26}
+
+\paraulesclau{reinforcement learning, aprenentatge per reforç, truc, jocs de cartes, DQN, PPO, NFSP, informació parcial, curriculum learning, self-play}
+
+%---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+\begin{document}
+
+\portada
+\portadainterior
+\frontmatter
+
+\cleartorecto \thispagestyle{empty}
+\begin{agraiments}
+[Agraïments]
+\end{agraiments}
+
+\cleartorecto \tableofcontents
+
+\cleartorecto \listoffigures
+\cleartorecto \listoftables
+
+\include{Acronims}
+
+\include{Resum}
+
+\mainmatter\pagestyle{ruled}
+
+%%%%%% COS DEL TREBALL %%%%%%%%%%%%
+
+\include{Introduccio}
+%\include{MarcTeoricJoc}
+%\include{Entorns}
+%\include{Metodologia}
+%\include{Resultats}
+\include{Conclusions}
+
+%%%%%%% Fi cos del treball %%%%%%%%%%%
+
+\appendix
+\include{Annexos}
+
+%%%%%%% Fi apèndix
+
+\backmatter
+
+\bibliographystyle{IEEEtran}
+\bibliography{Bibliografia}
+
+\end{document}

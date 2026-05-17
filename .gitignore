@@ -20,3 +20,6 @@ __pycache__/
 notebooks/6_nfsp/resultats/ppo_nfsp/sl_checkpoints/
 notebooks/6_nfsp/resultats/ppo_nfsp/snapshots/
 notebooks/5_selfplay/resultats/ppo_selfplay_pool_9snaps/snapshots/
+
+# Auxiliars de compilació LaTeX
+Memoria/aux/

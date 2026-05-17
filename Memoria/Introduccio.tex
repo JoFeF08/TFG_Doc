@@ -1,0 +1,140 @@
+%!TeX root=MemoriaTFG.tex
+
+\chapter{Introducció}
+\label{cap:introduccio}
+
+\section{La intel·ligència artificial en el joc}
+
+Al llarg de la història, els jocs han servit com a banc de prova privilegiat per a la
+intel·ligència artificial (\acsu{IA}). La raó és clara: un joc defineix un entorn tancat,
+amb regles precises i un criteri d'èxit objectiu, la qual cosa permet mesurar el progrés
+d'un agent de manera inequívoca. Els èxits en aquest àmbit han estat espectaculars.
+L'any 1997, Deep Blue derrota el campió mundial d'escacs Garry Kasparov, un fita que
+semblava inalcançable una dècada abans~\cite{campbell2002deepblue}. El 2016, AlphaGo supera
+Lee Sedol al joc del Go, un problema considerat exponencialment més complex pels seus
+\(10^{170}\) estats possibles~\cite{silver2016mastering}. El 2019, l'agent OpenAI Five
+derrota equips professionals de Dota~2 en partides de cinc jugadors per banda, demostrant
+la viabilitat de l'\acf{AR} en entorns multiagent de gran escala~\cite{berner2019dota}.
+
+El motor comú de tots aquests avenços és el \emph{Deep Reinforcement Learning} (o
+\acf{DRL}): la combinació de l'\ac{AR} clàssic amb xarxes neuronals profundes.
+L'\ac{AR} permet a un agent aprendre comportaments òptims interactuant amb un entorn i
+rebent recompenses; les xarxes profundes li permeten representar espais d'estats molt
+complexos sense necessitat de definir les característiques rellevants manualment.
+Junts, han fet possible que màquines sense cap coneixement inicial assoleixin nivells
+sobrehumans en dominis on els humans tarden anys a dominar.
+
+\section{El repte de la informació parcial}
+
+Els èxits anteriors, però, es produeixen principalment en jocs d'\emph{informació
+completa}: tots els jugadors veuen l'estat complet del joc en tot moment. Els escacs,
+el Go i els jocs de taulell en general pertanyen a aquesta categoria. En canvi, molts dels
+jocs que els humans troben més fascinants ---i estratègicament rics--- amaguen informació:
+les cartes dels adversaris, les intencions futures, els recursos ocults.
+
+Formalment, un joc d'informació parcial es modela com un \acf{POMDP}: l'agent
+rep observacions parcials de l'estat real del món i ha d'actuar sense visibilitat
+completa. Això introdueix un repte qualitatiu diferent, ja que l'estratègia òptima
+ja no consisteix a calcular la millor jugada donada la posició, sinó a raonar sobre
+la \emph{distribució de probabilitat} dels estats ocults, i a vegades a explotar
+deliberadament la incertesa de l'adversari.
+
+Els jocs de pòquer han estat el principal camp d'experimentació en informació parcial.
+El 2017, Libratus guanya jugadors professionals de Texas Hold'em de dos jugadors
+(\emph{heads-up})~\cite{brown2018libratus}. El 2019, Pluribus estén aquest resultat
+al pòquer de sis jugadors, un entorn multiagent molt més complex on les tècniques
+clàssiques de teoria de jocs no escalen directament~\cite{brown2019pluribus}.
+Ambdós agents aproximen un \emph{equilibri de Nash}: una estratègia tal que cap jugador
+pot millorar el seu resultat canviant unilateralment de política.
+
+Malgrat aquests progressos, el camp és lluny d'estar tancat. Cada joc d'informació
+parcial té la seva pròpia estructura d'observació, el seu espai d'accions i les seves
+dinàmiques estratègiques. Un agent entrenat al pòquer no es pot transferir directament
+a un altre joc de cartes: cal dissenyar l'entorn, definir l'espai d'estats i triar els
+algorismes adequats a cada cas.
+
+\section{El Truc: engany, parella i farol}
+
+El Truc és un joc de cartes tradicional d'arrel catalana i valenciana, estès a
+Llatinoamèrica i amb una comunitat activa a les Illes Balears i al País
+Valencià~\cite{retruc}. Es juga per parelles (dos contra dos), amb l'objectiu de ser
+el primer equip a arribar a 24 punts ---un \emph{cantó}--- en partides de millor de
+tres o cinc cantons.
+
+S'usa una baralla espanyola de 40 cartes de les quals s'eliminen els 2s, deixant
+36 cartes amb quatre colls (Ors, Copes, Espases i Bastos). La jerarquia de les cartes
+és no intuïtiva: la carta més alta no és l'as genèric, sinó l'As de Bastos (anomenat
+\emph{L'Amo}), seguit del 10 d'Ors (\emph{Sa Madona}), l'As d'Espases i l'As de Bastos,
+les set d'Espases i d'Ors, els tresos, la resta d'assos, les figures i finalment els
+valors baixos.
+
+Cada mà es divideix en dues batalles independents:
+
+\begin{itemize}
+  \item \textbf{L'Envit.} Abans de jugar cap carta, un jugador pot apostar sobre la
+    força de la seva mà, calculada com la suma dels valors de dues cartes del mateix
+    coll més 20 punts (les figures valen 0 en aquest còmput). L'escala d'apostes
+    progressa des de \emph{Envit} (2 punts en joc) fins a \emph{La Falta} (tots els
+    punts que li falten a l'equip guanyador per completar la cama). Si l'adversari
+    no vol l'aposta, cedeix 1 punt a l'apostador.
+
+  \item \textbf{El Truc.} En qualsevol moment, un jugador pot cantar \emph{Truc},
+    posant 3 punts en joc. L'aposta pot escalar fins a \emph{Retruc} (6 pts),
+    \emph{Quatre Val} (9 pts) i \emph{Joc Fora} (guanya tota la cama). L'objectiu
+    és guanyar dues de les tres rondes (\emph{bassetges}) jugant la carta amb
+    rang més alt en cada ronda.
+\end{itemize}
+
+La dimensió que fa del Truc un cas d'estudi especialment interessant no és, però,
+el seu sistema de puntuació: és el \textbf{farol}. A diferència del pòquer, on el
+farol és una acció aïllada, al Truc forma part de l'essència del joc. Un jugador
+amb una mà mediocre pot cantar Truc amb convicció esperant que l'adversari es retiri,
+cedint un punt sense veure les cartes. I alhora, les parelles poden comunicar
+informació sobre les seves mans mitjançant un sistema de \emph{senyes} (gestos
+facials codificats), sempre vigilant que els rivals no els deixin descoberts. Com
+resumeix la saviesa popular del joc: \emph{``El Truc no és només matemàtiques i
+memòria. És un joc de cares, de silencis i de mentides.''}
+
+Des del punt de vista formal, el Truc és un \ac{POMDP} cooperatiu-competitiu:
+l'agent ha de gestionar informació oculta (les cartes dels adversaris i de la parella),
+coordinar-se amb un aliat sense comunicació verbal explícita, i decidir en cada moment
+si enganyar o dir la veritat sobre la força de la seva mà. Aquesta combinació de
+factors el converteix en un repte d'\ac{AR} substancialment diferent dels jocs
+estudiats fins ara en la literatura.
+
+\section{Objectius i estructura d'aquest treball}
+
+L'objectiu d'aquest \acf{TFG} és desenvolupar i avaluar agents d'\acf{AR} capaços
+de jugar al Truc de manera competitiva, partint de zero i sense cap coneixement
+previ del joc. Concretament, el treball s'articula al voltant de tres objectius
+principals:
+
+\begin{enumerate}
+  \item \textbf{Modelització de l'entorn.} Dissenyar un simulador del Truc que
+    implementi totes les regles del joc (envit, truc, apostes, puntuació i senyes),
+    i exposar-lo com un entorn estàndard compatible amb les biblioteques d'\ac{AR}
+    existents (RLCard~\cite{zha2019rlcard} i Stable-Baselines3~\cite{raffin2021sb3}).
+
+  \item \textbf{Comparació d'algorismes i tècniques d'entrenament.} Avaluar quatre
+    algorismes ---\acf{DQN} i \acf{NFSP} via RLCard, i \ac{DQN} i \acf{PPO} via SB3---
+    en condicions homogènies, i estudiar l'efecte del \emph{curriculum learning}
+    (entrenar primer en mans individuals i després en partides senceres), de l'ús
+    d'extractors de característiques convolucionals, de la memòria recurrent (GRU) i
+    del \emph{self-play} sobre la convergència i el rendiment dels agents.
+
+  \item \textbf{Avaluació.} Mesurar el rendiment de cada agent contra un agent de
+    regles heurístiques i analitzar si els agents aprenen comportaments estratègics
+    (gestió de l'envit, ús del farol al truc) o es limiten a polítiques reactives.
+\end{enumerate}
+
+Com a objectiu addicional, s'explora la variant per parelles del Truc, que afegeix
+la dimensió cooperativa i la necessitat de coordinar-se amb un agent aliat.
+
+El treball s'organitza de la manera següent. El capítol~\ref{cap:marc} presenta el
+marc teòric: els fonaments de l'\ac{AR}, els algorismes emprats i l'estat de l'art
+en jocs d'informació parcial. El capítol~\ref{cap:joc} descriu la lògica del joc i
+l'arquitectura del simulador. El capítol~\ref{cap:entorns} detalla el disseny dels
+entorns d'\ac{AR}. El capítol~\ref{cap:metodologia} explica la metodologia
+d'entrenament per fases. El capítol~\ref{cap:resultats} presenta i discuteix els
+resultats experimentals. Finalment, el capítol~\ref{cap:conclusions} recull les
+conclusions i les línies de treball futur.
