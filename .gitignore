@@ -1,0 +1,22 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Obsidian settings
+.obsidian/
+
+# Models i pesos (weights)
+*.pt
+*.pth
+*.zip
+*.pkl
+*.onnx
+
+# Snapshots i checkpoints de l'entrenament
+notebooks/6_nfsp/resultats/ppo_nfsp/sl_checkpoints/
+notebooks/6_nfsp/resultats/ppo_nfsp/snapshots/
+notebooks/5_selfplay/resultats/ppo_selfplay_pool_9snaps/snapshots/
