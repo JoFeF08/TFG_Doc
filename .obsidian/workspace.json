@@ -1,0 +1,201 @@
+{
+  "main": {
+    "id": "14332778b91422e6",
+    "type": "split",
+    "children": [
+      {
+        "id": "db2c8f90043d7df2",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "dcfae422ad09a10d",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Nova pestanya"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "963dd90df5d509c5",
+    "type": "split",
+    "children": [
+      {
+        "id": "0c1b516f516b51c0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c1587e15d055ce2e",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de fitxers"
+            }
+          },
+          {
+            "id": "7074465c97e25b30",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Cerca"
+            }
+          },
+          {
+            "id": "5099da703b188875",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Marcadors"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "1be053bf42eff0ff",
+    "type": "split",
+    "children": [
+      {
+        "id": "eaf27912fe6e06bb",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7cf2ab599654facd",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "doc_tfg.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Retroenllaços per a doc_tfg"
+            }
+          },
+          {
+            "id": "a433eb6a1783bd54",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "doc_tfg.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Enllaços sortints de doc_tfg"
+            }
+          },
+          {
+            "id": "8170b024fe74ae51",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetes"
+            }
+          },
+          {
+            "id": "16883381fd5d4cc0",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Totes les propietats"
+            }
+          },
+          {
+            "id": "f0f6dc77a23976ab",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "doc_tfg.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Esquema de doc_tfg"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Obre el selector ràpid": false,
+      "graph:Obre la vista gràfica": false,
+      "canvas:Crea un llenç nou": false,
+      "daily-notes:Obre la nota d'avui": false,
+      "templates:Inserir plantilla": false,
+      "command-palette:Obre la paleta d'ordres": false,
+      "bases:Crea una base nova": false
+    }
+  },
+  "active": "dcfae422ad09a10d",
+  "lastOpenFiles": [
+    "diapos_truc.pdf",
+    "2026-03-31.md",
+    "notebooks/1_comparacio_inicial/resultats_comparativa_parallel_16M_30_03_1719h/ppo/training_log.csv",
+    "notebooks/1_comparacio_inicial/resultats_comparativa_parallel_16M_30_03_1719h/ppo/final.pt",
+    "notebooks/1_comparacio_inicial/resultats_comparativa_parallel_16M_30_03_1719h/ppo/best.pt",
+    "notebooks/1_comparacio_inicial/resultats_comparativa_parallel_16M_30_03_1719h/nfsp/training_log.csv",
+    "notebooks/1_comparacio_inicial/resultats_comparativa_parallel_16M_30_03_1719h/nfsp/final.pt",
+    "notebooks/1_comparacio_inicial/resultats_comparativa_parallel_16M_30_03_1719h/nfsp/best.pt",
+    "notebooks/1_comparacio_inicial/resultats_comparativa_parallel_16M_30_03_1719h/dqn/training_log.csv",
+    "notebooks/1_comparacio_inicial/resultats_comparativa_parallel_16M_30_03_1719h/dqn/final.pt",
+    "notebooks/1_comparacio_inicial/resultats_comparativa_parallel_16M_30_03_1719h/dqn/best.pt",
+    "notebooks/1_comparacio_inicial/resultats_comparativa_1env_30_03_0005h/ppo/training_log.csv",
+    "doc_tfg.md",
+    "0_Index_projecte.md",
+    "2_Logica_Joc.md",
+    "1_Arquitectura_MVC.md"
+  ]
+}

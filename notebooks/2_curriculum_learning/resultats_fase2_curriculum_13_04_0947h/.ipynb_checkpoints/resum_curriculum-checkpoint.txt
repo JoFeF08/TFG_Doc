@@ -1,0 +1,6 @@
+Fase 2 (curriculum): DQN RLCard / NFSP RLCard / DQN SB3 / PPO SB3 - lun 13 abr 2026 09:47:09 CEST
+Mans: 12000000 steps | Partides finetune: 12000000 steps
+Mode: curriculum (mans → partides)
+-------------------------------------------
+dqn_rlcard: 19244s (5h 20m 44s)
+nfsp_rlcard: 61663s (17h 7m 43s)

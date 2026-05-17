@@ -1,0 +1,16 @@
+Fase 3: Valor del Feature Extractor COS 
+-------------------------------------------
+ppo_sb3_control_cos: 2481s (0h 41m 21s)
+dqn_sb3_control_cos: 19177s (5h 19m 37s)
+ppo_sb3_curriculum_cos: 2484s (0h 41m 24s)
+dqn_sb3_curriculum_cos: 19931s (5h 32m 11s)
+ppo_sb3_mans_mlp: 2211s (0h 36m 51s)
+dqn_sb3_mans_mlp: 12458s (3h 27m 38s)
+dqn_sb3_scratch: 19817s (5h 30m 17s)
+dqn_sb3_frozen: 17729s (4h 55m 29s)
+dqn_sb3_finetune: 19861s (5h 31m 1s)
+ppo_sb3_scratch: 2412s (0h 40m 12s)
+ppo_sb3_frozen: 2336s (0h 38m 56s)
+ppo_sb3_finetune: 2435s (0h 40m 35s)
+
+ 

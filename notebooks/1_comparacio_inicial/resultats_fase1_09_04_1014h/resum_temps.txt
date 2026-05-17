@@ -1,0 +1,9 @@
+Fase 1: DQN RLCard / NFSP RLCard / DQN SB3 / PPO SB3 - jue 09 abr 2026 10:14:03 CEST
+Timesteps per agent: 5000000
+-------------------------------------------
+dqn_rlcard: 3272s (0h 54m 32s)
+nfsp_rlcard: 13943s (3h 52m 23s)
+dqn_sb3: 2584s (0h 43m 4s)
+ppo_sb3: 511s (0h 8m 31s)
+-------------------------------------------
+Completat: jue 09 abr 2026 15:52:33 CEST

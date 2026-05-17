@@ -1,0 +1,7 @@
+Fase 4: Memòria d'Oponent - vie 24 abr 2026 11:48:07 CEST
+Pesos cos: RL/entrenament/entrenamentEstatTruc/registres/15_04_26_a_les_1222/models/best_pesos_cos_truc.pth
+Steps per run: 12000000
+Variants: ablacio (PPO) + complet (PPO-LSTM) = 2 runs
+-------------------------------------------
+ppo_ablacio: 1206s (20m 6s)
+ppo_complet  54639s (15h 10m 39s)

@@ -1,0 +1,11 @@
+Fase 2 (control): DQN RLCard / NFSP RLCard / DQN SB3 / PPO SB3 - sáb 11 abr 2026 11:45:20 CEST
+Steps per agent: 24000000
+Mode: control (partides directes, sense self-play)
+-------------------------------------------
+dqn_rlcard: 19144s (5h 19m 4s)
+nfsp_rlcard: 62802s (17h 26m 42s)
+dqn_sb3: 12483s (3h 28m 3s)
+ppo_sb3: 2226s (0h 37m 6s)
+-------------------------------------------
+Completat: dom 12 abr 2026 22:38:19 CEST
+

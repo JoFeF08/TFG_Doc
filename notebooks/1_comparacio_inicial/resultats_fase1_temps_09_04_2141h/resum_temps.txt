@@ -1,0 +1,9 @@
+Fase 1 (temps): DQN RLCard / NFSP RLCard / DQN SB3 / PPO SB3 - jue 09 abr 2026 21:41:56 CEST
+Temps màxim per agent: 14400s (4.00h)
+-------------------------------------------
+dqn_rlcard: 14406s (4h 0m 6s)
+nfsp_rlcard: 14409s (4h 0m 9s)
+dqn_sb3: 14402s (4h 0m 2s)
+ppo_sb3: 14418s (4h 0m 18s)
+-------------------------------------------
+Completat: vie 10 abr 2026 13:42:31 CEST
