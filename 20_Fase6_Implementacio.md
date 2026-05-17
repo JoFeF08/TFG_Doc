@@ -6,22 +6,24 @@ Aquest document detalla la implementació tècnica del Neural Fictitious Self-Pl
 
 ## Disseny experimental
 
-S'executa un *run* principal de **48M steps** per comparar equitativament amb la Fase 5:
+S'executa un _run_ principal de **48M steps** per comparar equitativament amb la Fase 5:
 
-| Run | Agent RL | Política SL | Pool oponents |
-| :--- | :--- | :--- | :--- |
-| **F5-selfplay** (Baseline) | PPO + COS frozen | N/A | SelfPlayPool (Regles + PPO) |
-| **F6-nfsp** | PPO + COS frozen | AveragePolicyNet | NFSPPool: $\eta$ SL + $(1-\eta)$ SelfPlayPool |
+| Run                        | Agent RL         | Política SL      | Pool oponents                                |
+| :------------------------- | :--------------- | :--------------- | :------------------------------------------- |
+| **F5-selfplay** (Baseline) | PPO + COS frozen | N/A              | SelfPlayPool (Regles + PPO)                  |
+| **F6-nfsp**                | PPO + COS frozen | AveragePolicyNet | NFSPPool:$\eta$ SL + $(1-\eta)$ SelfPlayPool |
 
 El punt de partida (warm-start) és el model més robust de la Fase 5 (`best_robust.zip`), per assegurar que el Reservoir Buffer i l'agent SL comencen a nodrir-se d'un comportament ja molt depurat.
 
 ## Fitxers implementats
 
 **Nucli NFSP (`RL/models/nfsp/`)**
+
 - `reservoir_buffer.py`: Emmagatzema tuples `(observació_plana_240, acció)` mantenint la distribució de tota la història.
 - `average_policy.py`: Conté la xarxa `AveragePolicyNet` (aprofita el mateix `CosMultiInputSB3` precongelat + un MLP nou per predicar les accions via Softmax/Gumbel) i l'agent `SLAgent` usat a les partides.
 
 **Bucle d'Entrenament (`RL/entrenament/entrenamentsComparatius/fase6/`)**
+
 - `pool_nfsp.py`: Afegeix la lògica del paràmetre d'anticipació $\eta$. L'entorn escull demanar l'oponent a l'SL (amb probabilitat $\eta$) o a la pool regular (PPO / Regles).
 - `entrenament_fase6.py`: Adapta el bucle de la F5, guardant observacions cada `step` de Stable Baselines al Reservoir, i disparant l'optimització SL (Cross-Entropy Loss) independent.
 - `run_fase6.sh`: Script llançador amb els hiperparàmetres: buffer de 200.000, `sl_every` de 50.000, `sl_lr` de 5e-4 i $\eta=0.5$.
@@ -34,21 +36,22 @@ Amb **ForkServer**, cada subprocess re-importa tots els mòduls i instancia `sl_
 
 Amb **Fork + Copy-on-Write (COW)**, els subprocessos hereten l'espai de memòria del procés pare. Les pàgines de `sl_net_cpu` (carregat al pare en CPU) es comparteixen en mode read-only i no es copien fins que algun subprocess les modifiqui, la qual cosa mai succeeix (SLAgent opera en mode `eval` i `no_grad`). El pic addicional per subprocess és pràcticament zero, cosa que permet tornar a 32 entorns paral·lels.
 
-**Restricció tècnica**: el fork ha de fer-se *abans* d'inicialitzar CUDA, ja que els contexts CUDA no sobreviuen a un `fork()`. Per això, la funció `_ppo_nfsp()` crea primer `sl_net_cpu`, `nfsp_pool` i `vec_env` (el fork), i *després* carrega `sl_net` a GPU i inicialitza `cudnn.benchmark`.
+**Restricció tècnica**: el fork ha de fer-se _abans_ d'inicialitzar CUDA, ja que els contexts CUDA no sobreviuen a un `fork()`. Per això, la funció `_ppo_nfsp()` crea primer `sl_net_cpu`, `nfsp_pool` i `vec_env` (el fork), i _després_ carrega `sl_net` a GPU i inicialitza `cudnn.benchmark`.
 
-| | F5-selfplay | F6-nfsp |
-|:---|:---|:---|
-| `start_method` | forkserver | **fork** |
-| `num_envs` | 32 | **32** |
+|                      | F5-selfplay      | F6-nfsp          |
+| :------------------- | :--------------- | :--------------- |
+| `start_method`       | forkserver       | **fork**         |
+| `num_envs`           | 32               | **32**           |
 | `n_steps × num_envs` | 256 × 32 = 8.192 | 256 × 32 = 8.192 |
-| Velocitat estimada | ~250 steps/s | ~250 steps/s |
-| Temps 48M | ~2.5 dies | ~2.5 dies |
+| Velocitat estimada   | ~250 steps/s     | ~250 steps/s     |
+| Temps 48M            | ~2.5 dies        | ~2.5 dies        |
 
 La comparació F5 vs F6 és equitativa: el batch PPO (`n_steps × num_envs` = 8.192) és idèntic als dos runs.
 
 ## Mètriques Registrades
 
 S'expandeix el CSV respecte a la Fase 5:
+
 - `sl_loss`: Cross-entropy mitjana de l'Average Policy respecte el buffer. Mostra com l'agent SL "aprèn" les accions històriques.
 - `wr_vs_sl`: WR del PPO contra el seu propi SLAgent estocàstic.
 - `exploit_vs_sl`: $| \text{wr\_vs\_sl} - 50.0 |$. Mesura la distància empírica al Nash; com més proper a 0, més in-explotable és el comportament històric vs l'actual.
@@ -73,21 +76,21 @@ Run completat: **48M steps**, 153 avaluacions enregistrades.
 
 ### Taula Resum
 
-| Mètrica | F4-ablació | F5-selfplay | F6-NFSP |
-|:--------|:-----------|:------------|:--------|
-| `max metric` | 89.0% @ 24M | 89.2% @ 42M | **91.0% @ 14M** |
-| `metric_robust` (màx) | 73.2% | **77.8%** | 75.2% |
-| `std_pool` (últimes 5 aval.) | 12.9% | **11.9%** | 13.4% |
-| `exploit_vs_sl` (últimes 5) | — | — | 16.7 pp |
-| `exploit_vs_sl` (best_nash) | — | — | **3.3 pp** @ 1M steps |
+| Mètrica                      | F4-ablació  | F5-selfplay | F6-NFSP               |
+| :--------------------------- | :---------- | :---------- | :-------------------- |
+| `max metric`                 | 89.0% @ 24M | 89.2% @ 42M | **91.0% @ 14M**       |
+| `metric_robust` (màx)        | 73.2%       | **77.8%**   | 75.2%                 |
+| `std_pool` (últimes 5 aval.) | 12.9%       | **11.9%**   | 13.4%                 |
+| `exploit_vs_sl` (últimes 5)  | —           | —           | 16.7 pp               |
+| `exploit_vs_sl` (best_nash)  | —           | —           | **3.3 pp** @ 1M steps |
 
 ### Validació d'Hipòtesis
 
-| Hipòtesi | Resultat | Detall |
-|:---------|:---------|:-------|
-| **H1** — No regressió (`metric` F6 ≥ F5 − 3 pp) | ✅ **VÀLIDA** | F6=91.0% vs F5=89.2%; +1.8 pp de guany |
-| **H2** — Reducció `std_pool` | ❌ **FALLA** | F6 std=13.4% vs F5 std=11.9%; lleugerament pitjor |
-| **H3** — Nash: `exploit_vs_sl` < 8 pp | ✅ **VÀLIDA** (@ `best_nash`) | **3.3 pp** @ 1M steps (`best_nash.zip`); 16.7 pp en mitjana últimes 5 |
+| Hipòtesi                                        | Resultat                     | Detall                                                                |
+| :---------------------------------------------- | :--------------------------- | :-------------------------------------------------------------------- |
+| **H1** — No regressió (`metric` F6 ≥ F5 − 3 pp) | ✅**VÀLIDA**                 | F6=91.0% vs F5=89.2%; +1.8 pp de guany                                |
+| **H2** — Reducció `std_pool`                    | ❌**FALLA**                  | F6 std=13.4% vs F5 std=11.9%; lleugerament pitjor                     |
+| **H3** — Nash: `exploit_vs_sl` < 8 pp           | ✅**VÀLIDA** (@ `best_nash`) | **3.3 pp** @ 1M steps (`best_nash.zip`); 16.7 pp en mitjana últimes 5 |
 
 ### Anàlisi de les Corbes
 
@@ -101,12 +104,4 @@ Run completat: **48M steps**, 153 avaluacions enregistrades.
 
 **H2 (Falla):** Amb `η = 0.5`, buffer de 200k i `sl_every = 50k`, el Reservoir Buffer no acumula prou diversitat d'historial per que l'Average Policy actuï com a àncora estabilitzadora de la variança en el domini del Truc (espai d'observació 240-dimensional). El resultat és coherent amb la literatura: NFSP requereix molts més episodis per convergir en dominis complexos.
 
-**H3 (Vàlida @ `best_nash`):** El checkpoint `best_nash.zip` (1M steps, `exploit_vs_sl` = 3.3 pp) demostra que el sistema *sí pot* assolir la zona Nash (<8 pp). Aquesta és l'avaluació metodològicament correcta per a NFSP: l'objectiu és demostrar que la política mitjana pot ser no-explotable, no que ho sigui de forma contínua. En mitjana de les últimes 5 avaluacions (16.7 pp) H3 fallaria, però això reflecteix que l'entrenament no ha convergit de forma estable — coherent amb la literatura (Heinrich & Silver, 2016), on fins i tot Leduc Hold'em requereix 10^8–10^9 episodis.
-
-### Conclusions i Treball Futur
-
-L'arquitectura NFSP implementada és correcta i funcional. Les línies de millora per convergir cap a Nash serien:
-- **Augmentar el budget d'entrenament** (>>100M steps).
-- **Ajustar η**: valors menors (ex. η=0.1) reforcen la pressió Nash però poden alentir l'aprenentatge de best-response.
-- **Augmentar el Reservoir Buffer** (>500k) per representar millor l'historial.
-- **Augmentar la freqüència SL** (`sl_every` < 50k) per actualitzar la política mitjana més sovint.
+**H3 (Vàlida @ `best_nash`):** El checkpoint `best_nash.zip` (1M steps, `exploit_vs_sl` = 3.3 pp) demostra que el sistema _sí pot_ assolir la zona Nash (<8 pp). Aquesta és l'avaluació metodològicament correcta per a NFSP: l'objectiu és demostrar que la política mitjana pot ser no-explotable, no que ho sigui de forma contínua. En mitjana de les últimes 5 avaluacions (16.7 pp) H3 fallaria, però això reflecteix que l'entrenament no ha convergit de forma estable — coherent amb la literatura (Heinrich & Silver, 2016), on fins i tot Leduc Hold'em requereix 10^8–10^9 episodis.
