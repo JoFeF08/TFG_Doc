@@ -257,6 +257,9 @@
 \newcommand{\tutor}[1]{\gdef\@tutor{#1}}%
 \newcommand{\@tutor}{\@latex@warning@no@line{No \noexpand\tutor given}}
 
+\newcommand{\cotutor}[1]{\gdef\@cotutor{#1}}%
+\newcommand{\@cotutor}{}
+
 \newcommand{\paraulesclau}[1]{%
 \gdef\@paraulesclau{#1}}
 \newcommand{\@paraulesclau}{}
@@ -370,6 +373,13 @@
 					\large\sffamily\emph{Tutor: \@tutor}
 			}% Fi de makebox
 		}% Fi de put
+		\ifx\@cotutor\empty\else
+		\put(35,-222){%
+			\makebox(0,0)[lb]{%
+					\large\sffamily\emph{Cotutor: \@cotutor}
+			}% Fi de makebox
+		}% Fi de put
+		\fi
 		% \put(35,-235){%
 		% 	\makebox(0,0)[lt]{\sffamily%
 		% 		\begin{tabular}{lcc|cc}
