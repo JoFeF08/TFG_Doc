@@ -23,3 +23,15 @@ notebooks/5_selfplay/resultats/ppo_selfplay_pool_9snaps/snapshots/
 
 # Auxiliars de compilació LaTeX
 Memoria/aux/
+Memoria/*.aux
+Memoria/*.log
+Memoria/*.toc
+Memoria/*.lof
+Memoria/*.lot
+Memoria/*.out
+Memoria/*.bbl
+Memoria/*.blg
+Memoria/*.brf
+Memoria/*.fls
+Memoria/*.fdb_latexmk
+Memoria/*.synctex.gz
