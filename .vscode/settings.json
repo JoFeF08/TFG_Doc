@@ -1,0 +1,57 @@
+{
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/Memoria/*.aux": true,
+    "**/Memoria/*.log": true,
+    "**/Memoria/*.toc": true,
+    "**/Memoria/*.lof": true,
+    "**/Memoria/*.lot": true,
+    "**/Memoria/*.out": true,
+    "**/Memoria/*.bbl": true,
+    "**/Memoria/*.blg": true,
+    "**/Memoria/*.brf": true,
+    "**/Memoria/*.fls": true,
+    "**/Memoria/*.fdb_latexmk": true,
+    "**/Memoria/*.synctex.gz": true,
+    "**/Memoria/aux": true
+  },
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "pdflatex → bibtex → pdflatex × 2",
+      "tools": ["pdflatex", "bibtex", "pdflatex", "pdflatex"]
+    },
+    {
+      "name": "pdflatex (ràpid)",
+      "tools": ["pdflatex"]
+    }
+  ],
+  "latex-workshop.latex.tools": [
+    {
+      "name": "pdflatex",
+      "command": "pdflatex",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-aux-directory=%OUTDIR%/aux",
+        "%DOC%"
+      ],
+      "env": {}
+    },
+    {
+      "name": "bibtex",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "$env:BIBINPUTS='%OUTDIR%'; Push-Location '%OUTDIR%/aux'; bibtex '%DOCFILE%'; Pop-Location"
+      ],
+      "env": {}
+    }
+  ],
+  "latex-workshop.latex.outDir": "%DIR%",
+  "latex-workshop.view.pdf.viewer": "tab",
+  "latex-workshop.latex.autoBuild.run": "onSave",
+  "latex-workshop.synctex.afterBuild.enabled": true
+}
