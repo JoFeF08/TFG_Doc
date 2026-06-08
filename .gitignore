@@ -21,6 +21,9 @@ notebooks/6_nfsp/resultats/ppo_nfsp/sl_checkpoints/
 notebooks/6_nfsp/resultats/ppo_nfsp/snapshots/
 notebooks/5_selfplay/resultats/ppo_selfplay_pool_9snaps/snapshots/
 
+# Planning intern (no forma part de la memòria)
+planning.md
+
 # Auxiliars de compilació LaTeX
 Memoria/aux/
 Memoria/*.aux
