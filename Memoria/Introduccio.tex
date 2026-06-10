@@ -4,26 +4,32 @@
 \label{cap:introduccio}
 
 El joc és una de les activitats més antigues de la humanitat. Abans de ser un objecte
-de diferents estudis, era simplement una pràctica social: un espai on les persones s'enfronten, es coordinen,
-negocien i, sovint, s'ensenyen mútuament. Els antropòlegs el descriuen com un
-mecanisme de transmissió cultural i d'entrenament de la intel·ligència, present en totes les societats
-conegudes~\cite{huizinga1938homo}. Jugar no és només passar l'estona: és practicar la
-presa de decisions sota incertesa, gestionar el risc i llegir les intencions dels altres.
+de diferents estudis, era simplement una pràctica social: un espai on les persones
+s'enfronten, es coordinen, negocien i, sovint, s'ensenyen mútuament. Els antropòlegs
+el descriuen com un mecanisme de transmissió cultural i d'entrenament de la
+intel·ligència, present en totes les societats conegudes~\cite{huizinga1938homo}.
+Jugar no és només passar l'estona: és practicar la presa de decisions sota incertesa,
+gestionar el risc i llegir les intencions dels altres.
 
-Els jocs tradicionals hi afegeixen una capa de patrimoni i cultura. Aquests no són simples entreteniments: són codis culturals transmesos de generació en generació, amb vocabulari propi, rituals i regles que reflecteixen el pensament social de cada territori. El problema és que necessiten jugadors. Concretament,
-necessiten que coincideixin al mateix lloc i al mateix moment un nombre determinat de
-persones que coneguin el joc.
+Els jocs tradicionals hi afegeixen una capa de patrimoni i cultura. Aquests no són
+simples entreteniments: són codis culturals transmesos de generació en generació,
+amb vocabulari propi, rituals i regles que reflecteixen el pensament social de cada
+territori. El problema és que necessiten jugadors que coincideixin al mateix lloc i
+al mateix moment. La dispersió geogràfica, l'envelliment dels cercles de jugadors i
+el canvi d'hàbits d'oci fan que sigui cada cop més difícil. Sense adversaris ni
+parella, el joc s'extingeix per inanició, no per desinterès.
 
-Aquí rau el repte. La dispersió geogràfica, l'envelliment dels cercles de jugadors i el
-canvi d'hàbits d'oci fan que sigui cada cop més difícil trobar persones disponibles
-per seure a una taula. Sense adversaris ni parella, el joc s'extingeix per inanició, no per
-desinterès.
+No record exactament quan vaig aprendre a jugar a cartes. Als tretze o catorze anys
+ja hi jugaven tots els meus amics del poble. El que sé és que he tengut la sort de poder comptar amb els padrins, ties i altre gent, que m'han pogut ensenyar els distints jocs tradicionals, entre ells jocs de cartes. Al meu poble, jocs com el Terceti (que avui quasi ja no es juga a cap altre lloc) o
+el Truc formen part de la vida quotidiana, transmesos de generació en generació
+sense que ningú ho pensés gaire.
 
-Una intel·ligència artificial capaç de jugar de manera competent canvia aquest
-escenari. Permet que un jugador humà pugui practicar, aprendre i gaudir del joc sense
-dependre de la disponibilitat d'altres persones. No es tracta de substituir l'experiència
-social (que té un valor que cap algorisme pot replicar), sinó de garantir que el joc es
-pugui continuar jugant quan els humans no hi puguin ser.
+Però amb els anys m'he anat adonant que cada cop és més difícil trobar gent per
+seure a una taula. El cercle de jugadors envelleix, i quan no hi ha prou persones
+disponibles el Truc simplement no es pot jugar. Aquesta inquietud és el que m'ha
+duit a fer aquest \ac{TFG}: crear una versió del Truc que es pugui jugar contra
+un agent d'aprenentatge per reforç, de manera que el joc pugui continuar viu encara
+que no hi hagi quatre humans disponibles.
 
 \section{La intel·ligència artificial en el joc}
 
@@ -75,71 +81,49 @@ algorismes adequats a cada cas.
 
 \section{El Truc: engany, parella i farol}
 
-El Truc és un d'aquells jocs tradicionals de què parlàvem: patrimoni viu amb comunitat
-activa, però que depèn de trobar quatre persones disposades a seure a una taula. D'arrel
-catalana i valenciana, estès a Llatinoamèrica i arrelat a les Illes Balears i al País
-Valencià~\cite{retruc}, és també, com veurem, un repte tècnic de primer ordre per
-a la \ac{IA}. Es juga per parelles (dos contra dos), i guanya el primer equip que arriba
-als 24 punts d'una \emph{cama}.
+El Truc és un joc de cartes tradicional d'arrel catalana i valenciana, arrelat a les
+Illes Balears i al País Valencià~\cite{retruc}. Es juga per parelles (dos contra dos)
+amb una baralla espanyola de 36 cartes, i guanya el primer equip que arriba als
+24~punts d'una \emph{cama}. Cada mà es disputa en dues apostes independents:
+\textbf{l'Envit} (sobre la força de la mà en punts) i \textbf{el Truc} (sobre qui
+guanya les rondes de carta alta). Les regles completes, la jerarquia de cartes i
+el model formal es detallen al capítol~\ref{cap:joc}.
 
-La baralla és l'espanyola de 40 cartes, però sense els 2s, de manera que en queden
-36 amb quatre colls: Ors, Copes, Espases i Bastos. L'ordre de les cartes no segueix
-cap lògica numèrica evident: la més alta és l'As de Bastos (\emph{L'Amo}), seguida
-del 10 d'Ors (\emph{Sa Madona}), l'As d'Espases, l'As de Copes, les set d'Espases i
-d'Ors, els tresos... i a partir d'aquí ja és més convencional. Qui no ha jugat mai
-necessita unes quantes mans per tenir-la interioritzada.
-
-Cada mà es disputa en dues apostes independents que es resolen per separat:
-
-\begin{itemize}
-  \item \textbf{L'Envit.} Abans de jugar cap carta, qualsevol jugador pot apostar
-    sobre la força de la seva mà. El valor de l'envit es calcula sumant els punts de
-    les dues cartes del mateix coll més altes en valor numèric, i afegint-hi 20 (les
-    figures valen 0 en aquest còmput; el màxim possible és 35). L'escala d'apostes puja amb \emph{Millor Envit} (+2 punts en joc) des d'\emph{Envit} (2 punts en joc) fins a \emph{La Falta} (tots els punts que li manquen a l'equip
-    guanyador per completar la cama). En cada pas, l'equip contrari pot acceptar,
-    pujar o retirar-se; qui no vol l'aposta cedeix 1 punt o lo que es duu acumulat fins aleshores i la subhasta es tanca sense ensenyar les cartes.
-
-  \item \textbf{El Truc.} Independentment de l'envit, en qualsevol moment del joc
-    un jugador pot cantar \emph{Truc}, posant 3 punts en joc. L'equip contrari pot
-    acceptar, contra-apostar amb \emph{Retruc} (6 pts), \emph{Quatre Val} (9 pts) o
-    \emph{Joc Fora} (guanya tota la cama), o retirar-se cedint 1 punt. La mà en si
-    es resol jugant fins a tres rondes (\emph{bassetges}): a cada ronda ambdós equips
-    juguen una carta i guanya la de rang superior; l'equip que s'endú dues bassetges
-    guanya la mà i s'emporta els punts apostats al Truc.
-\end{itemize}
-
-Ara bé, la mecànica de les apostes no és el que fa del Truc un joc difícil d'automatitzar.
-És el \textbf{farol}. Al pòquer el farol és una opció tàctica; al Truc és quasi
-inevitable: qui té cartes dolentes pot cantar Truc amb convicció i guanyar el punt
-sense ensenyar-les. A més, les parelles es coordinen mitjançant \emph{senyes}, un
-sistema de gestos facials codificats, que els adversaris poden intentar llegir i
-explotar. Com es diu al joc: \emph{``El Truc no és només matemàtiques i memòria.
-És un joc de cares, de silencis i de mentides.''}
+La mecànica no és el que fa del Truc un repte per a la \ac{IA}. És el \textbf{farol}:
+qui té cartes dolentes pot cantar Truc amb convicció i guanyar el punt sense
+ensenyar-les. A més, les parelles es coordinen mitjançant \emph{senyes}, un sistema
+de gestos facials codificats que els adversaris poden intentar llegir i explotar.
+Com es diu al joc: \emph{``El Truc no és només matemàtiques i memòria. És un joc
+de cares, de silencis i de mentides.''}
 
 Tot plegat, el Truc és un \ac{POMDP} cooperatiu-competitiu: l'agent ha de gestionar
-informació oculta (les cartes de la parella i dels adversaris), coordinar-se sense
-comunicació verbal explícita, i decidir a cada torn si enganyar o ser sincer sobre
-la força de la seva mà. Aquesta combinació de factors el fa substancialment diferent
-dels jocs estudiats fins ara en la literatura.
+informació oculta, coordinar-se sense comunicació verbal explícita i decidir a cada
+torn si enganyar o ser sincer sobre la força de la seva mà. Aquesta combinació de
+factors el fa substancialment diferent dels jocs estudiats fins ara en la literatura.
 
 \section{Objectius i estructura d'aquest treball}
 
-L'objectiu d'aquest \acf{TFG} és desenvolupar i avaluar agents d'\ac{AR} capaços
-de jugar al Truc de manera competitiva, partint de zero i sense cap coneixement
-previ del joc. El treball es limita a la variant d'un contra un (1~vs~1): les senyes
-i la coordinació per parelles (2~vs~2) queden fora de l'abast d'aquest treball i
-s'identifiquen com a línies de recerca futures. Concretament, el treball s'articula
-al voltant de tres objectius principals:
+Per complir amb l'objectiu d'aquest \ac{TFG} (\emph{desenvolupar i avaluar agents
+d'\ac{AR} capaços de jugar al Truc de manera competitiva, partint de zero i sense
+cap coneixement previ del joc}) ens cal primer implementar una versió digital
+completa i jugable del Truc (incloent les modalitats de 2~vs~2 amb senyes).
+L'entrenament dels agents es circumscriu a la variant d'1~vs~1 sense senyes;
+l'extensió a agents cooperatius per parelles s'identifica com a línia de recerca
+futura. Concretament, el treball s'articula al voltant de tres objectius principals:
 
 \begin{enumerate}
-  \item \textbf{Modelització i implementació.} Dissenyar un simulador del Truc en
-    format 1~vs~1 que implementi les regles del joc (envit, truc i apostes), exposar-lo
-    com un entorn estàndard compatible amb les biblioteques d'\ac{AR} existents
-    (RLCard~\cite{zha2019rlcard} i Stable-Baselines3~\cite{raffin2021sb3}), i oferir
-    un mode de joc jugador contra jugador.
+  \item \textbf{Modelització, implementació i aplicació jugable.} Implementar el
+    motor complet del joc (envit, truc, apostes i senyes) seguint una arquitectura
+    \ac{MVC} que desacobla nítidament la lògica del joc, el control i la interfície.
+    L'aplicació compta amb dues interfícies: consola (text) i escriptori (gràfica
+    amb imatges de naips i interacció per ratolí). La interfície d'escriptori permet
+    partides 1~vs~1 (humà contra humà o humà contra agent) i 2~vs~2 humà contra
+    humà amb suport de senyes. El motor s'exposa alhora com a entorn estàndard
+    compatible amb les biblioteques d'\ac{AR}
+    (RLCard~\cite{zha2019rlcard} i Stable-Baselines3~\cite{raffin2021sb3}).
 
   \item \textbf{Comparació d'algorismes i tècniques d'entrenament.} Avaluar quatre
-    algorismes ---\acf{DQN} i \acf{NFSP} via RLCard, i \ac{DQN} i \acf{PPO} via SB3---
+    algorismes (\acf{DQN} i \acf{NFSP} via RLCard, i \ac{DQN} i \acf{PPO} via SB3)
     en condicions homogènies, i estudiar l'efecte del \emph{curriculum learning}
     (entrenar primer en mans individuals i després en partides senceres), de l'ús
     d'extractors de característiques convolucionals, de la memòria recurrent (GRU) i
