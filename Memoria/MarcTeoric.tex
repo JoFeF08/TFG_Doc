@@ -12,65 +12,204 @@ que apareixeran a la metodologia d'entrenament.
 \section{Aprenentatge per Reforç}
 \label{sec:ar}
 
-L'\ac{AR} és el paradigma d'aprenentatge automàtic en què un agent aprèn a
-actuar en un entorn mitjançant l'assaig i l'error, guiat per senyals de
+L'\ac{AR} és el paradigma d'aprenentatge automàtic en el qual un agent aprèn
+a actuar en un entorn mitjançant la interacció directa, guiat per senyals de
 recompensa~\cite{sutton2018}. A diferència de l'aprenentatge supervisat, no
-existeix un professor que indiqui l'acció correcta a cada pas: l'agent ha de
-descobrir per si mateix quines accions condueixen a recompenses elevades.
+existeix cap conjunt d'exemples etiquetats ni un tercer que indiqui la
+resposta correcta; a diferència de l'aprenentatge no supervisat, sí que hi ha
+una senyal d'avaluació (la recompensa) que orienta l'aprenentatge.
+
+Aquesta secció presenta els fonaments formals de l'\ac{AR}: la formalització
+com a \ac{MDP}, les funcions de valor i les equacions de Bellman, el problema
+d'exploració, la distinció entre algorismes \emph{on-policy} i
+\emph{off-policy}, i l'extensió al cas d'observació parcial (\ac{POMDP}).
 
 \subsection*{Procés de Decisió de Markov}
 
 L'entorn es formalitza com un \acf{MDP}, definit per la tupla
-$(S, A, P, R, \gamma)$:
+$(S, A, P, R, \gamma)$ on cada component té el significat que recull la
+Taula~\ref{tab:mdp-tuple}.
 
-\begin{itemize}
-  \item $S$ — conjunt d'estats de l'entorn,
-  \item $A$ — conjunt d'accions disponibles per a l'agent,
-  \item $P(s' \mid s, a)$ — probabilitat de transitar a l'estat $s'$ en
-        prendre l'acció $a$ des de l'estat $s$,
-  \item $R(s, a)$ — recompensa immediata esperada,
-  \item $\gamma \in [0, 1)$ — factor de descompte que pondera la importància
-        de les recompenses futures.
-\end{itemize}
+\begin{table}[H]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Component & Descripció \\
+    \midrule
+    $S$ & Conjunt d'estats de l'entorn \\
+    $A$ & Conjunt d'accions disponibles per a l'agent \\
+    $P(s' \mid s, a)$ & Probabilitat de transitar a $s'$ prenent l'acció $a$ des de $s$ \\
+    $R(s, a, s')$ & Recompensa immediata esperada en la transició \\
+    $\gamma \in [0,1)$ & Factor de descompte (recompenses futures vs.\ immediates) \\
+    \bottomrule
+  \end{tabular}
+  \caption{Components de la tupla \acs{MDP}.}
+  \label{tab:mdp-tuple}
+\end{table}
 
-A cada pas de temps $t$, l'agent observa l'estat $s_t$, tria una acció $a_t$
-seguint una \emph{política} $\pi(a \mid s)$, rep la recompensa $r_t$ i
-transita a $s_{t+1}$.
+Una \emph{política} $\pi$ és la regla de decisió de l'agent: en la forma
+estocàstica, $\pi(a \mid s)$ expressa la probabilitat de seleccionar l'acció
+$a$ quan l'estat és $s$; en la forma determinista, $\pi : S \to A$ assigna
+directament una acció a cada estat. El cicle bàsic d'interacció és el
+representat a la Figura~\ref{fig:cicle-ar}: a cada pas de temps $t$, l'agent
+observa $s_t$, tria $a_t \sim \pi(\cdot \mid s_t)$, rep la recompensa $r_t$ i
+l'entorn transita a $s_{t+1} \sim P(\cdot \mid s_t, a_t)$.
 
-L'objectiu de l'agent és trobar la política $\pi^*$ que maximitzi el retorn
-acumulat descomptat $G_t = \sum_{k=0}^{\infty} \gamma^k r_{t+k}$.
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    bloc/.style={draw, rounded corners=4pt, minimum width=2.8cm,
+                 minimum height=1.0cm, align=center, font=\small},
+    >=Stealth, thick
+  ]
+    \node[bloc] (agent) {Agent\\[2pt]$\pi(a\mid s;\theta)$};
+    \node[bloc, right=5cm of agent] (env) {Entorn};
+    \draw[->] ([yshift=4pt]agent.east) --
+              node[above, font=\small]{acció $a_t$}
+              ([yshift=4pt]env.west);
+    \draw[->] ([yshift=-4pt]env.west) --
+              node[below, font=\small]{estat $s_{t+1}$,\quad recompensa $r_t$}
+              ([yshift=-4pt]agent.east);
+  \end{tikzpicture}
+  \caption{Cicle d'interacció agent–entorn en \acs{AR}.}
+  \label{fig:cicle-ar}
+\end{figure}
 
-\subsection*{Funcions de valor}
-
-La \emph{funció de valor d'estat} $V^\pi(s)$ mesura el retorn esperat des de
-l'estat $s$ seguint la política $\pi$, i la \emph{funció de valor d'acció}
-$Q^\pi(s,a)$ en fa el mateix però condicionant en l'acció inicial $a$:
-
+L'objectiu de l'agent és trobar la política òptima $\pi^*$ que maximitzi el
+\emph{retorn acumulat descomptat}:
 \[
-  V^\pi(s) = \mathbb{E}_\pi\!\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k}
-  \;\middle|\; s_t = s\right], \qquad
-  Q^\pi(s,a) = \mathbb{E}_\pi\!\left[\sum_{k=0}^{\infty} \gamma^k r_{t+k}
-  \;\middle|\; s_t = s,\, a_t = a\right].
+  G_t = \sum_{k=0}^{\infty} \gamma^k\, r_{t+k+1}.
+\]
+El factor $\gamma$ controla l'horitzó temporal efectiu: quan $\gamma \to 0$
+l'agent és miop i prioritza les recompenses immediates; quan $\gamma \to 1$
+valora el futur quasi tant com el present.
+
+\FloatBarrier
+\subsection*{Funcions de valor i equacions de Bellman}
+
+Per saber si una política $\pi$ és bona, cal quantificar el retorn esperat
+que l'agent obtindrà seguint-la. Per fer-ho s'utilitzen dues funcions de
+valor complementàries: la \emph{funció de valor d'estat} $V^\pi(s)$ i la
+\emph{funció de valor d'acció} $Q^\pi(s,a)$:
+\[
+  V^\pi(s) = \mathbb{E}_\pi\!\left[G_t \;\middle|\; s_t = s\right], \qquad
+  Q^\pi(s,a) = \mathbb{E}_\pi\!\left[G_t \;\middle|\; s_t = s,\, a_t = a\right].
 \]
 
-L'\emph{equació de Bellman} expressa $Q^*$ de forma recursiva:
+Aquestes funcions satisfan les \emph{equacions de Bellman}, que les expressen
+de forma recursiva a partir del pas immediatament següent:
+\begin{align}
+  V^\pi(s) &= \sum_{a} \pi(a \mid s)
+              \sum_{s'} P(s' \mid s, a)
+              \bigl[R(s,a,s') + \gamma\, V^\pi(s')\bigr], \label{eq:bellman-v}\\
+  Q^\pi(s,a) &= \sum_{s'} P(s' \mid s, a)
+               \bigl[R(s,a,s') + \gamma
+               \sum_{a'}\pi(a' \mid s')\,Q^\pi(s',a')\bigr]. \label{eq:bellman-q}
+\end{align}
+
+Quan la política és l'òptima $\pi^*$, les equacions es simplifiquen
+substituint la suma sobre accions per un màxim:
+\begin{align}
+  V^*(s)   &= \max_{a}\; \mathbb{E}\bigl[r + \gamma\, V^*(s')\mid s,a\bigr],
+                         \label{eq:bellman-opt-v}\\
+  Q^*(s,a) &= \mathbb{E}\bigl[r + \gamma \max_{a'} Q^*(s',a') \mid s,a\bigr].
+                         \label{eq:bellman-opt-q}
+\end{align}
+
+La relació entre totes dues és $V^*(s) = \max_a Q^*(s,a)$, i la política
+òptima s'obté directament com $\pi^*(s) = \arg\max_a Q^*(s,a)$. Quan l'espai
+d'estats és massa gran per representar $Q^*$ en una taula, s'aproxima amb una
+xarxa neuronal $Q(s,a;\theta)$, donant lloc a la família d'algorismes de
+\ac{DRL}.
+
+\FloatBarrier
+\subsection*{Exploració i explotació}
+
+Fins i tot amb les equacions de Bellman ben definides, aprendre $Q^*$ per
+interacció directa planteja un dilema pràctic: l'agent ha de decidir si aplica
+l'acció que creu millor (\textbf{explotació}) o en prova una de nova per
+obtenir més informació (\textbf{exploració}). Sense exploració suficient,
+l'agent queda atrapat en polítiques subòptimes; amb massa exploració, no
+convergeix.
+
+L'estratègia $\varepsilon$-\emph{greedy} és la solució més senzilla: amb
+probabilitat $1-\varepsilon$ tria l'acció de valor màxim i amb probabilitat
+$\varepsilon$ n'escull una uniformement a l'atzar. Durant l'entrenament,
+$\varepsilon$ decau des d'un valor proper a 1 fins a un valor residual baix.
+Els algorismes de gradient de política com \ac{PPO} adopten un enfocament
+diferent: afegeixen un terme d'entropia $\mathcal{H}[\pi]$ a la funció
+objectiu, penalitzant les polítiques massa deterministes i incentivant la
+diversitat d'accions de forma contínua.
+
+\FloatBarrier
+\subsection*{Polítiques \emph{on-policy} i \emph{off-policy}}
+
+Els algorismes \emph{on-policy} (com \ac{PPO}) aprenen únicament de dades
+generades per la política actual; els \emph{off-policy} (com \ac{DQN}) poden
+reutilitzar transicions passades emmagatzemades en un \emph{replay buffer},
+cosa que millora l'eficiència de mostres però requereix correcció de la
+distribució.
+
+\FloatBarrier
+\subsection*{Observació parcial: el model POMDP}
+
+Els models \ac{MDP} vistos fins ara assumeixen que l'agent observa l'estat
+complet del sistema en cada instant. En molts entorns reals, i en particular
+al Truc, aquesta suposició no es compleix: els adversaris amaguen les seves
+cartes i les intencions futures romanen ocultes.
+
+Un \acf{POMDP} estén el \ac{MDP} amb dues components addicionals (un conjunt
+d'observacions $\Omega$ i una funció d'emissió $O$), donant la tupla completa
+$(S, A, P, R, \gamma, \Omega, O)$. La funció $O(o \mid s', a)$ especifica la
+probabilitat de rebre l'observació $o \in \Omega$ després de transitar a
+l'estat $s'$ prenent l'acció $a$. L'agent no veu $s_t$ directament, sinó una
+observació parcial $o_t$ que en conté menys informació, tal com il·lustra la
+Figura~\ref{fig:pomdp}.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    state/.style={draw, circle, minimum size=1.0cm, font=\small},
+    obs/.style  ={draw, circle, minimum size=1.0cm, font=\small, dashed},
+    act/.style  ={font=\small},
+    >=Stealth, thick
+  ]
+    \foreach \i/\t in {1/$s_{t-1}$, 2/$s_t$, 3/$s_{t+1}$}{
+      \node[state] (s\i) at ({(\i-1)*3.2}, 0) {\t};
+    }
+    \foreach \i/\t in {1/$o_{t-1}$, 2/$o_t$, 3/$o_{t+1}$}{
+      \node[obs] (o\i) at ({(\i-1)*3.2}, -2) {\t};
+    }
+    \draw[->] (s1) -- (s2) node[midway, above, font=\scriptsize]{$a_{t-1}$};
+    \draw[->] (s2) -- (s3) node[midway, above, font=\scriptsize]{$a_t$};
+    \draw[->, dashed] (s1) -- (o1) node[midway, right, font=\scriptsize]{$O$};
+    \draw[->, dashed] (s2) -- (o2) node[midway, right, font=\scriptsize]{$O$};
+    \draw[->, dashed] (s3) -- (o3) node[midway, right, font=\scriptsize]{$O$};
+  \end{tikzpicture}
+  \caption{Model gràfic del \acs{POMDP}: els estats $s_t$ (cercles continus) són
+           ocults; l'agent només observa $o_t$ (cercles discontinus) generats per
+           la funció d'emissió $O$.}
+  \label{fig:pomdp}
+\end{figure}
+
+La política òptima en un \ac{POMDP} ha de raonar sobre la
+\emph{distribució de creença} (\emph{belief state}) $b_t(s) = P(s_t = s \mid
+o_{1:t}, a_{1:t-1})$. Quan es rep una nova observació $o_{t+1}$, la creença
+s'actualitza aplicant el teorema de Bayes:
 \[
-  Q^*(s,a) = \mathbb{E}\!\left[r + \gamma \max_{a'} Q^*(s',a')\right].
+  b_{t+1}(s') \;\propto\; O(o_{t+1} \mid s', a_t)
+  \sum_{s \in S} P(s' \mid s, a_t)\, b_t(s).
 \]
-Aquesta relació de recurrència és la base de tots els algorismes de la família
-Q-learning.
+En la pràctica, mantenir $b_t$ explícitament és intractable per a espais
+d'estats grans. En el seu lloc s'utilitzen xarxes recurrents (\acs{LSTM},
+\acs{GRU}) que comprimeixen l'historial d'observacions en un vector d'estat
+ocult, actuant com a representació implícita de la creença.
 
-\subsection*{POMDP: observació parcial}
+L'entorn del Truc és precisament un \ac{POMDP}: l'agent rep una observació
+que inclou la seva mà i l'historial d'apostes visible, però no les cartes dels
+adversaris.
 
-En molts entorns reals, l'agent no té accés a l'estat complet del sistema.
-Un \acf{POMDP} estén el model \ac{MDP} amb una funció d'observació
-$O(o \mid s, a)$: en lloc de $s_t$, l'agent rep una observació parcial $o_t$
-que conté menys informació que l'estat real.
-
-L'entorn del Truc és un \ac{POMDP}: l'agent rep una observació de 239
-dimensions que inclou la seva mà i l'historial visible, però no les cartes dels
-adversaris. Això implica que la política òptima ha de raonar sobre la
-\emph{distribució de probabilitat} dels estats ocults.
+\FloatBarrier
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Estat de l'art en jocs d'informació parcial}
@@ -83,8 +222,8 @@ sobrehumans.
 
 \textbf{Libratus}~\cite{brown2018libratus} (Brown \& Sandholm, 2017) guanya
 jugadors professionals de Texas Hold'em de dos jugadors. CFR minimitza
-iterativament el penediment contra-factual —la millora hipotètica si s'hagués
-pres una acció diferent— i convergeix a l'equilibri de Nash. Libratus resol
+iterativament el penediment contra-factual (la millora hipotètica si s'hagués
+pres una acció diferent) i convergeix a l'equilibri de Nash. Libratus resol
 sub-jocs en temps real per refinar la seva estratègia durant la partida.
 
 \textbf{Pluribus}~\cite{brown2019pluribus} (Brown \& Sandholm, 2019) estén
@@ -95,37 +234,18 @@ multi-jugador d'informació parcial.
 
 \subsection*{Limitacions dels enfocaments CFR}
 
-Malgrat els seus èxits, els sistemes basats en CFR presenten limitacions
-importants que motiven l'enfocament d'aquest treball:
+Malgrat els seus èxits, CFR presenta tres limitacions que motiven l'ús de
+\ac{DRL} en aquest treball. El cost creix exponencialment amb la profunditat
+de l'arbre i el nombre de jugadors, cosa que exigeix abstraccions manuals
+específiques per a cada joc. A més, aquestes abstraccions no es transfereixen:
+redissenyar-les per al Truc (amb apostes menys estructurades i senyes) seria
+tan costós com el problema original. Finalment, CFR no aprèn representacions
+compartides, de manera que no es beneficia de la generalització de les xarxes
+neuronals.
 
-\begin{itemize}
-  \item \textbf{Cost exponencial}: CFR necessita aproximar o enumerar l'arbre
-        de joc complet. El cost creix exponencialment amb la profunditat i el
-        nombre de jugadors, fent-lo inviable sense un disseny meticulós
-        d'abstraccions específiques per a cada joc.
-
-  \item \textbf{Especificitat del pòquer}: l'estructura de Texas Hold'em
-        (cegues fixes, rondes predefinides, jugadors eliminables) facilita la
-        partició en sub-jocs resolubles. Jocs amb apostes menys estructurades
-        —com el Truc, on l'escala d'apostes i les senyes introdueixen
-        dependències complexes— no es beneficien directament d'aquestes
-        tècniques.
-
-  \item \textbf{Absència de representació apresa}: CFR opera sobre historials
-        d'accions abstractes sense xarxes neuronals compartides. Transferir
-        l'enfocament a un nou joc requereix redissenyar l'abstracció des de
-        zero.
-
-  \item \textbf{Escalabilitat multi-jugador limitada}: la convergència a Nash
-        que Pluribus aconsegueix amb 6 jugadors és teòricament sòlida però
-        computacionalment intensiva i difícilment aplicable a 4+ jugadors
-        sense recursos de supercomputació.
-\end{itemize}
-
-L'enfocament d'aquest treball, basat en \ac{DRL} (DQN, PPO, NFSP), no
-requereix modelar l'arbre de joc explícitament i generalitza a nous jocs sense
-redissenyar l'abstracció, pagant el cost d'una convergència a Nash menys
-garantida teòricament però més escalable en la pràctica.
+L'enfocament \ac{DRL} (DQN, PPO, NFSP) evita modelar l'arbre explícitament i
+generalitza a nous jocs sense redissenyar abstraccions, a canvi d'una
+convergència a Nash menys garantida teòricament.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Deep Q-Network}
@@ -159,11 +279,30 @@ Dues innovacions clau estabilitzen l'entrenament:
         simultàniament la xarxa d'estimació i l'objectiu.
 \end{itemize}
 
-Per al joc del Truc, on no totes les accions són legals en cada estat, s'aplica
-\emph{action masking}: les accions il·legals reben un valor de $-\infty$ abans
-del $\operatorname{argmax}$, de manera que l'agent mai no selecciona una acció
-prohibida. A la Fase~1 es comparen dues implementacions de \ac{DQN}: la nativa
-de RLCard i la de \ac{SB3}.
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    bloc/.style={draw, rounded corners=4pt, minimum width=2.5cm,
+                 minimum height=0.9cm, align=center, font=\small},
+    >=Stealth, thick
+  ]
+    \node[bloc] (obs)  at (0,   0) {$o_t$};
+    \node[bloc] (qnet) at (3.8, 0) {Xarxa Q\\$\theta$};
+    \node[bloc] (act)  at (7.6, 0) {$\arg\max_a Q$\\$+\;\mathrm{mask}\to a_t$};
+    \node[bloc] (rep)  at (1.9,-2.2) {Replay $\mathcal{D}$};
+    \node[bloc, draw=gray!70, text=gray!70] (tnet) at (5.7,-2.2) {$\theta^-$ (objectiu)};
+
+    \draw[->] (obs) -- (qnet);
+    \draw[->] (qnet) -- (act);
+    \draw[->] (act.south) -- ++(0,-0.55) -| (rep.east);
+    \draw[->] (rep.north) |- (qnet.south);
+    \draw[->, dashed, gray!70] (qnet.south) |- (tnet.north)
+          node[midway, right, font=\scriptsize, text=black]{còpia cada $N$};
+    \draw[->, dashed, gray!70] (tnet.east) -| (act.south);
+  \end{tikzpicture}
+  \caption{Arquitectura \acs{DQN}: la xarxa objectiu $\theta^-$ (discontínua) proporciona objectius de Bellman estables; l'experience replay $\mathcal{D}$ trenca la correlació temporal entre mostres.}
+  \label{fig:dqn}
+\end{figure}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Proximal Policy Optimization}
@@ -183,6 +322,26 @@ línia base que redueix la variança del gradient.
 L'avantatge estimat $\hat{A}_t$ mesura si l'acció presa va ser millor o pitjor
 del previst pel crític, i s'estima mitjançant el mètode GAE
 (\emph{Generalized Advantage Estimation}).
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    bloc/.style={draw, rounded corners=4pt, minimum width=2.6cm,
+                 minimum height=0.9cm, align=center, font=\small},
+    >=Stealth, thick
+  ]
+    \node[bloc] (obs)    at (0,   0)   {Observació $o_t$};
+    \node[bloc] (shared) at (3.8, 0)   {Extractor\\compartit $f_\phi$};
+    \node[bloc] (actor)  at (7.6, 0.8) {Actor $\pi_\theta$\\(política)};
+    \node[bloc] (critic) at (7.6,-0.8) {Crític $V_\phi$\\(valor)};
+
+    \draw[->] (obs) -- (shared);
+    \draw[->] (shared.east) |- (actor.west);
+    \draw[->] (shared.east) |- (critic.west);
+  \end{tikzpicture}
+  \caption{Arquitectura Actor-Critic de \acs{PPO}: extractor de característiques compartit amb dos caps independents, un per a la política i un per a la funció de valor.}
+  \label{fig:actor-critic}
+\end{figure}
 
 \subsection*{Objectiu amb retall}
 
@@ -210,11 +369,14 @@ d'entropia $\mathcal{H}[\pi]$ per mantenir l'exploració:
 
 \subsection*{Paral·lelisme}
 
-PPO és on-policy i aprofita el paral·lelisme de manera natural: en aquest
-treball s'han usat 48 entorns simultanis via \texttt{SubprocVecEnv}, assolint
-un rendiment de $\approx$\,9.780 passos per segon, trenta vegades superior a
-NFSP-RLCard. Aquesta capacitat de paral·lelisme és decisiva per a l'eficiència
-del curriculum learning de la Fase~2.
+Com que PPO és \emph{on-policy}, necessita generar mostres noves en cada
+iteració. Per compensar aquest cost, l'algorisme aprofita el paral·lelisme
+de manera natural: múltiples còpies de l'entorn s'executen simultàniament i
+alimenten un únic agent central, tal com proposen Schulman et
+al.~\cite{schulman2017ppo}. Aquesta arquitectura permet escalar el nombre de
+passos per unitat de temps de forma gairebé lineal amb el nombre d'entorns
+paral·lels, compensant l'eficiència de mostres inferior respecte als mètodes
+\emph{off-policy}.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Curriculum Learning}
@@ -246,11 +408,23 @@ S'ha dissenyat un currículum de dues etapes:
         l'afinament es produeix sobre el comportament estratègic a llarg termini.
 \end{enumerate}
 
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    bloc/.style={draw, rounded corners=4pt, minimum width=3.4cm,
+                 minimum height=1.3cm, align=center, font=\small},
+    >=Stealth, thick
+  ]
+    \node[bloc] (fase1) at (0,0) {\textbf{Etapa 1: Mans}\\12M passos\\recompensa densa};
+    \node[bloc] (fase2) at (6,0) {\textbf{Etapa 2: Partides}\\12M passos\\recompensa escassa};
+    \draw[->] (fase1) -- node[above, font=\small]{transferència $\theta$} (fase2);
+  \end{tikzpicture}
+  \caption{Currículum de dues etapes: mans individuals amb recompensa densa, seguides de partides senceres amb transferència dels pesos apresos.}\label{fig:curriculum}
+\end{figure}
+
 El risc principal és l'\textbf{oblit catastròfic}: els algorismes on-policy com
 PPO descarten les dades antigues, cosa que pot fer que l'agent oblidi el que va
-aprendre a l'etapa de mans quan s'exposa a les partides senceres. La Fase~2
-avalua experimentalment fins a quin punt aquest risc es materialitza per a cada
-algoritme.
+aprendre a l'etapa de mans quan s'exposa a les partides senceres. 
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Deep Recurrent Q-Learning}
@@ -274,16 +448,6 @@ L'entrenament de \ac{DRQN} propaga els gradients a través del temps (BPTT,
 \emph{Backpropagation Through Time}) sobre segments de trajectòria de longitud
 $L$. La pèrdua s'acumula als últims $L$ passos de la seqüència per evitar que
 els gradients s'extingueixin en contextos molt llargs.
-
-\subsection*{Aplicació al Truc i resultat}
-
-Per al Truc, s'han agrupat $N=5$ mans consecutives (sessió) sense reiniciar
-l'estat de la \acs{LSTM} entre elles. La hipòtesi és que l'agent pot detectar
-patrons en el comportament de l'oponent al llarg de la sessió i adaptar la seva
-política en temps real. A la Fase~4 es prova la variant \emph{RecurrentPPO}
-(LSTM sobre l'extractor CNN) combinada amb un pool de 6 variants d'oponents. Els
-resultats, discutits al capítol~\ref{cap:metodologia}, revelaran limitacions
-importants d'aquesta aproximació en el context de recursos limitats.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Self-play i equilibri de Nash}
@@ -322,8 +486,6 @@ definit dues mètriques:
         la distància a l'equilibri de Nash: 0 indica que cap dels dos jugadors
         pot guanyar sistemàticament a l'altre.
 \end{itemize}
-La Fase~5 implementa un pool de snapshots i confirma que la robustesa millora
-+18\,pp sense regredir el win rate brut.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Neural Fictitious Self-Play}
@@ -350,6 +512,28 @@ de joc.
         d'accions.
 \end{enumerate}
 
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    bloc/.style={draw, rounded corners=4pt, minimum width=3.0cm,
+                 minimum height=1.0cm, align=center, font=\small},
+    >=Stealth, thick
+  ]
+    \node[bloc] (rl)  at (0,  1.4) {Bucle RL\\$\pi^{BR}$ (best response)};
+    \node[bloc] (buf) at (5.5, 0)  {Reservoir\\Buffer};
+    \node[bloc] (sl)  at (0, -1.4) {Bucle SL\\$\overline{\pi}$ (pol. promig)};
+
+    \draw[->] (rl.east)  -- node[above, sloped, font=\scriptsize]{accions de $\pi^{BR}$}
+              (buf.north west);
+    \draw[->] (buf.south west) -- node[below, sloped, font=\scriptsize]{mostreig uniforme}
+              (sl.east);
+    \draw[->] (sl.west) -- ++(-1.4,0) |-
+              node[left, font=\scriptsize, pos=0.25]{$\overline{\pi}$ com a oponent}
+              (rl.west);
+  \end{tikzpicture}
+  \caption{\acs{NFSP}: el bucle RL genera accions que s'acumulen al reservoir buffer; el bucle SL aprèn per imitació la política promig $\overline{\pi}$, que s'usa com a oponent durant l'entrenament.}\label{fig:nfsp}
+\end{figure}
+
 \subsection*{Reservoir Buffer}
 
 Per garantir que l'estimació de la política promig sigui imparcial, les accions
@@ -366,6 +550,18 @@ l'equilibri de Nash es mesura com:
   \texttt{exploit\_vs\_sl} = |WR_{\text{PPO vs SL}} - 50|.
 \]
 Un valor de 0 indica que el best-response i la política promig estan en
-equilibri: cap dels dos pot guanyar sistemàticament a l'altre. A la
-Fase~6, s'assoleix un Nash gap de 3,3\,pp al millor checkpoint, amb un win rate
-màxim de 91\% a 14M de passos.
+equilibri: cap dels dos pot guanyar sistemàticament a l'altre.
+
+\begin{table}[H]
+  \centering
+  \caption{Comparativa dels algorismes d'\acs{AR} emprats al treball.}\label{tab:comparativa-algorismes}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Algorisme} & \textbf{On/Off-policy} & \textbf{Memòria} & \textbf{Garantia Nash} & \\
+    \midrule
+    \acs{DQN}  & Off-policy & Experience replay  & No         \\
+    \acs{PPO}  & On-policy  & Cap                & No                 \\
+    \acs{NFSP} & Tots dos   & Reservoir buffer   & Aproximada             \\
+    \bottomrule
+  \end{tabular}
+\end{table}

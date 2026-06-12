@@ -1,6 +1,8 @@
 \documentclass[GINF,catalan]{TFGEPSUIB}
 
 \usepackage{indentfirst}
+\usepackage[section]{placeins}
+\usepackage{float}
 \raggedbottom
 \usepackage{amsmath,mathtools}
 \usepackage{listings}
@@ -8,7 +10,10 @@
 \input{DefinicionsAcronims}
 \usepackage{siunitx}
 \usepackage{booktabs}
+\usepackage{multirow}
 \usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
 \usepackage[backref, colorlinks=true, allcolors=black]{hyperref}
 
 %----------------------------------------------
@@ -52,7 +57,7 @@
 
 \include{Introduccio}
 \include{MarcTeoric}
-%\include{JocSimulacio}
+\include{JocSimulacio}
 %\include{Metodologia}
 %\include{ResultatsConclusions}
 \include{Conclusions}

@@ -1,0 +1,305 @@
+%!TeX root=MemoriaTFG.tex
+
+\chapter{El Joc del Truc}
+\label{cap:joc}
+
+Abans d'entrenar cap agent cal disposar d'una implementació fidel i verificable
+del joc. Aquest capítol presenta primer les regles del Truc en la variant
+considerada, i tot seguit l'arquitectura de programari que les materialitza: un
+disseny \acf{MVC} que separa la lògica del joc, el control del flux i la interfície
+amb l'usuari. Aquesta separació és la que permet, més endavant, connectar el mateix
+motor de joc tant a una interfície humana com als entorns d'\ac{AR}
+(capítol~\ref{cap:entorns}).
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Regles del joc}
+\label{sec:regles}
+
+El Truc és un joc de bases i apostes que es juga per parelles (dos contra dos) o
+un contra un. L'objectiu és ser el primer equip a assolir els 24~punts d'una
+\emph{cama}. Es fa servir la baralla espanyola reduïda a 36 cartes: dels quatre
+colls ---Ors, Copes, Espases i Bastos--- s'eliminen els 2, 8 i 9, de manera que
+cada coll conserva nou rangs: $\{1, 3, 4, 5, 6, 7, 10, 11, 12\}$.
+
+\subsection*{Jerarquia de les cartes}
+
+A diferència d'altres jocs, el valor de combat de les cartes no segueix l'ordre
+numèric. La taula~\ref{tab:jerarquia} recull la jerarquia completa tal com la
+implementa el jutge del joc (\texttt{TrucJudger}): les quatre cartes superiors són
+úniques i reben noms propis, mentre que la resta s'ordena per rang amb desempats
+entre colls.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{cll}
+    \toprule
+    Posició & Carta & Denominació \\
+    \midrule
+    1  & 11 de Bastos              & L'Amo \\
+    2  & 10 d'Ors                  & Sa Madona \\
+    3  & As d'Espases              & L'espasa \\
+    4  & As de Bastos              & El basto \\
+    5  & 7 d'Espases               & Manilla \\
+    6  & 7 d'Ors                   & Manilla \\
+    7  & Els tresos                & --- \\
+    8  & Assos d'Ors i de Copes    & Assos bords \\
+    9  & Els dotzes                & Figures \\
+    10 & Els onzes                 & Figures \\
+    11 & Els deus                  & Figures \\
+    12 & 7 de Bastos i de Copes    & Sets bords \\
+    13 & Els sisos                 & \multirow{3}{*}{Blanques} \\
+    14 & Els cincs                 & \\
+    15 & Els quatres               & \\
+    \bottomrule
+  \end{tabular}
+  \caption{Jerarquia de força de les cartes, de major a menor.}
+  \label{tab:jerarquia}
+\end{table}
+
+Cada mà es reparteix amb tres cartes per jugador i es disputa en dues apostes
+independents que es resolen per separat: \textbf{l'Envit} i \textbf{el Truc}.
+
+\subsection*{L'Envit}
+
+L'Envit és l'aposta sobre la força de la mà en punts. El valor d'una mà es calcula
+sumant els valors de les dues cartes més altes d'un mateix coll i afegint-hi
+20~punts base. A efectes d'aquesta suma, les figures (10, 11 i 12) valen 0, amb dues
+excepcions: el 10~d'Ors compta 7 i l'11~de Bastos compta 8, i tots dos lliguen amb
+qualsevol coll. Així, una mà amb el 7 i el 6~d'Espases val
+$7 + 6 + 20 = 33$~punts.
+
+Quan un jugador canta envit, l'equip contrari pot acceptar, apujar l'aposta o
+retirar-se cedint un punt. Cada crit incrementa els punts en joc segons
+l'escala de la taula~\ref{tab:envit}.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Crit & Punts en joc \\
+    \midrule
+    Envit     & 2 \\
+    Un altre  & 4 \\
+    Dos més   & 6 \\
+    La Falta  & els punts que falten al líder per completar la cama \\
+    \bottomrule
+  \end{tabular}
+  \caption{Escala d'apostes de l'Envit.}
+  \label{tab:envit}
+\end{table}
+
+\subsection*{El Truc}
+
+El Truc és l'aposta sobre qui guanya les cartes. La mà es resol en fins a tres
+rondes (anomenades \emph{bassetges}): a cada ronda els jugadors juguen una carta i
+en guanya la de rang superior segons la taula~\ref{tab:jerarquia}; l'equip que
+s'endú dues bassetges guanya la mà. En qualsevol moment un jugador pot cantar
+\emph{Truc}, obrint una escala d'apostes independent de l'Envit
+(taula~\ref{tab:truc}). Com en l'Envit, el contrari pot acceptar, contra-apostar o
+retirar-se cedint el nivell anterior.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Crit       & Punts en joc \\
+    \midrule
+    Truc       & 3 \\
+    Retruc     & 6 \\
+    Quatre Val & 9 \\
+    Joc Fora   & tota la cama \\
+    \bottomrule
+  \end{tabular}
+  \caption{Escala d'apostes del Truc.}
+  \label{tab:truc}
+\end{table}
+
+\subsection*{Les senyes}
+
+En la modalitat per parelles, els companys es comuniquen mitjançant \emph{senyes}:
+un conjunt de nou gestos facials codificats que indiquen quines cartes fortes es
+tenen, sense parlar i procurant que els rivals no els vegin. Per exemple, alçar les
+celles indica que es té L'Amo, i aclucar un ull, Sa Madona. La implementació recull
+aquests nou senyals com a accions del joc, però el seu ús queda restringit a les
+partides 2~contra~2 entre humans; l'entrenament dels agents es fa sobre la variant
+1~contra~1 sense senyes (vegeu el capítol~\ref{cap:metodologia}).
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{Arquitectura del simulador}
+\label{sec:mvc}
+
+El simulador segueix el patró \acf{MVC}, que separa el sistema en tres
+responsabilitats independents:
+
+\begin{itemize}
+  \item El \textbf{model} conté la lògica del joc: l'estat, les regles i els
+        jugadors automàtics.
+  \item La \textbf{vista} gestiona l'entrada i la sortida amb l'usuari.
+  \item El \textbf{controlador} orquestra el flux, demanant dades i accions a la
+        vista i consultant i modificant l'estat a través del model.
+\end{itemize}
+
+La clau del disseny és que el controlador no depèn de cap implementació concreta,
+sinó de dues \emph{interfícies} (contractes): qualsevol vista i qualsevol model que
+les satisfacin són intercanviables sense tocar el controlador. Aquesta indirecció
+és la que permet reutilitzar el mateix nucli de joc per a una interfície gràfica
+humana o per als adaptadors d'\ac{AR}. La figura~\ref{fig:mvc} resumeix aquesta
+organització.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    bloc/.style={draw, rounded corners=4pt, minimum width=2.6cm,
+                 minimum height=1.1cm, align=center, font=\small},
+    >=Stealth, thick
+  ]
+    \node[bloc] (vista) {Vista\\[2pt]\footnotesize consola / escriptori};
+    \node[bloc, right=3.2cm of vista] (ctrl) {Controlador};
+    \node[bloc, right=3.2cm of ctrl] (model) {Model\\[2pt]\footnotesize \texttt{TrucGame}};
+    \draw[<->] (vista) -- node[above, font=\footnotesize]{contracte}
+                              node[below, font=\footnotesize]{\texttt{Vista}} (ctrl);
+    \draw[<->] (ctrl) -- node[above, font=\footnotesize]{contracte}
+                             node[below, font=\footnotesize]{\texttt{Model}} (model);
+  \end{tikzpicture}
+  \caption{Arquitectura \acs{MVC}: el controlador només coneix les interfícies.}
+  \label{fig:mvc}
+\end{figure}
+
+\subsection*{Els contractes}
+
+El controlador parla amb el model a través del protocol \texttt{Model}
+(\texttt{interficie\_model.py}) i amb la vista a través del protocol \texttt{Vista}
+(\texttt{interficie\_vista.py}). Les taules~\ref{tab:contracte-model}
+i~\ref{tab:contracte-vista} en resumeixen els mètodes principals.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Mètode & Funció \\
+    \midrule
+    \texttt{iniciar(config)}      & Crea i inicialitza una partida \\
+    \texttt{get\_estat(pid)}      & Retorna l'estat visible per a un jugador \\
+    \texttt{get\_jugador\_actual} & Indica qui ha de jugar ara \\
+    \texttt{es\_huma(pid)}        & Indica si el jugador és humà \\
+    \texttt{get\_accio\_bot(pid)} & Retorna l'acció triada per un bot \\
+    \texttt{aplicar\_accio(a)}    & Aplica una acció i avança l'estat \\
+    \texttt{es\_final()}          & Indica si la partida ha acabat \\
+    \texttt{get\_resultat()}      & Retorna el marcador i els \emph{payoffs} finals \\
+    \bottomrule
+  \end{tabular}
+  \caption{Mètodes principals del contracte \texttt{Model}.}
+  \label{tab:contracte-model}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Mètode & Funció \\
+    \midrule
+    \texttt{demanar\_config()}          & Demana la configuració de la partida \\
+    \texttt{mostrar\_estat(estat)}      & Mostra l'estat actual del joc \\
+    \texttt{escollir\_accio(legals)}    & Presenta les accions legals i en retorna una \\
+    \texttt{mostrar\_accio(pid, nom)}   & Informa de l'acció feta per un jugador \\
+    \texttt{mostrar\_fi\_partida(\dots)} & Mostra el resultat final \\
+    \texttt{demanar\_repetir()}         & Pregunta si es vol jugar una altra partida \\
+    \bottomrule
+  \end{tabular}
+  \caption{Mètodes principals del contracte \texttt{Vista}.}
+  \label{tab:contracte-vista}
+\end{table}
+
+\subsection*{El bucle de joc}
+
+El controlador (\texttt{Controlador.executar\_partida}) implementa un bucle únic
+que avança mentre la partida no acabi. A cada iteració consulta qui té el torn; si
+és un humà, mostra l'estat per la vista, li demana una acció i l'aplica al model;
+si és un bot, obté l'acció directament del model i l'aplica. Després de cada jugada
+comunica a la vista els esdeveniments rellevants ---qui ha guanyat l'envit o el
+truc--- i, en acabar, mostra el resultat. Tota la lògica de joc resta al model i
+tota la presentació resta a la vista; el controlador només coordina.
+
+L'adaptador principal del model és \texttt{ModelInteractiu}, que embolcalla una
+instància de \texttt{TrucGame} i li afegeix dues capacitats: aïllar el motor de
+joc darrere del contracte i injectar models d'\ac{AR} preentrenats als jugadors
+automàtics, de manera que un bot pugui ser tant un agent aleatori com una xarxa
+neuronal entrenada.
+
+\subsection*{Les interfícies}
+
+El projecte ofereix dues vistes plenament funcionals. La \textbf{vista de consola}
+és una interfície de text, lleugera i adequada per a execucions automàtiques i
+depuració en entorns sense pantalla. La \textbf{vista d'escriptori} és una interfície
+gràfica que representa l'estat amb imatges reals de naips i recull les accions per
+clic de ratolí, intercalant retards artificials en els moviments dels bots per
+emular el ritme d'un rival humà. La interfície gràfica permet jugar partides
+1~contra~1 ---humà contra humà o humà contra agent--- i 2~contra~2 entre humans amb
+suport de senyes.
+
+% ────────────────────────────────────────────────────────────────────────────
+\section{El motor de joc}
+\label{sec:motor}
+
+El cor del model és la classe \texttt{TrucGame}, que gestiona tot l'estat de la
+partida ---jugadors, cartes, apostes, rondes i puntuació--- de manera independent de
+qualsevol interfície. Delega responsabilitats concretes en tres rols especialitzats:
+\texttt{TrucDealer} barreja i reparteix les cartes; \texttt{TrucJudger} resol la
+jerarquia, els guanyadors de rondes i el càlcul de l'envit; i \texttt{TrucPlayer}
+representa cada jugador, mantenint la mà actual, la mà inicial ---necessària per
+resoldre l'envit encara que les cartes ja s'hagin jugat--- i, opcionalment, el model
+que decideix les seves accions.
+
+\subsection*{Accions i estat de resposta}
+
+El conjunt d'accions del joc és fix i consta de 19 accions: tres per jugar cada
+carta de la mà, set per a les apostes i respostes (apostar envit, apostar truc,
+acceptar, retirar-se i passar) i nou per a les senyes. En cada torn, el motor
+restringeix les accions legals segons la situació. Un mecanisme central per a
+aquesta restricció és l'\emph{estat de resposta}, que pot prendre tres valors:
+sense aposta pendent, truc pendent o envit pendent. Mentre hi ha una aposta pendent
+de resposta, l'adversari només pot acceptar-la, contra-apostar-la o retirar-se: no
+pot jugar cartes ni fer cap altra acció fins que l'aposta es resolgui.
+
+\subsection*{Les fases del torn}
+
+Per eficiència en l'entrenament, l'estat d'un torn s'ha reduït a dues fases
+(figura~\ref{fig:fases}). La \textbf{Fase 0} (senyals) només existeix quan les
+senyes estan actives i permet registrar un gest abans de jugar; si estan desactivades,
+se salta completament. La \textbf{Fase 1} unifica apostes i joc de cartes: és on es
+canta l'envit o el truc, es responen les apostes i es juguen les cartes.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    bloc/.style={draw, rounded corners=4pt, minimum height=1.0cm, align=center,
+                 font=\small, inner xsep=8pt},
+    >=Stealth, thick, node distance=1.6cm
+  ]
+    \node[bloc] (inici) {Inici de ronda};
+    \node[bloc, right=of inici] (f0) {Fase 0\\[2pt]\footnotesize senyals (opcional)};
+    \node[bloc, right=of f0] (f1) {Fase 1\\[2pt]\footnotesize apostes i joc};
+    \node[bloc, right=of f1] (eval) {Avaluació\\[2pt]\footnotesize de la jugada};
+    \draw[->] (inici) -- (f0);
+    \draw[->] (f0) -- node[above, font=\footnotesize]{passar / senya} (f1);
+    \draw[->] (f1) -- (eval);
+    \draw[->] (eval.south) -- ++(0,-0.7) -| node[below, font=\footnotesize, pos=0.25]{nova ronda} (inici.south);
+  \end{tikzpicture}
+  \caption{Fases d'un torn. Si les senyes estan desactivades, la Fase~0 se salta.}
+  \label{fig:fases}
+\end{figure}
+
+\subsection*{Fi de mà i fi de partida}
+
+El motor distingeix dos nivells de finalització. La funció \texttt{is\_ma\_over}
+indica que la mà actual ha acabat ---perquè hi ha un guanyador per rondes o perquè
+algú s'ha retirat---, moment en què es reparteixen els punts i es reparteix una mà
+nova. La funció \texttt{is\_over} indica que la partida sencera ha acabat, quan un
+equip arriba a la puntuació final de la cama.
+
+A banda del resultat final de la partida, el motor emet també senyals de recompensa
+intermèdia (\texttt{reward\_intermedis}) després de cada jugada rellevant. Aquestes
+senyals són la base del \emph{reward shaping} que guia l'aprenentatge dels agents;
+el seu disseny detallat es presenta en el context dels entorns d'\ac{AR}
+(capítol~\ref{cap:entorns}) i de la metodologia d'entrenament
+(capítol~\ref{cap:metodologia}).
