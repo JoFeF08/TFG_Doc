@@ -19,16 +19,19 @@ Markdown files are numbered to define reading order:
 
 ```
 notebooks/
-├─ 1_comparacio_inicial/   (Phase 1: algorithm comparison)
-├─ 2_curriculum_learning/  (Phase 2: curriculum learning)
+├─ 1_comparacio_inicial/   (Phase 1: algorithm comparison; resultats_fase1_<timestamp>/ dirs)
+├─ 2_curriculum_learning/  (Phase 2: curriculum learning; resultats_fase2_*_<timestamp>/ dirs)
 ├─ 3_feature_extractor/    (Phase 3: CNN feature extractor)
-├─ 4_memoria/              (Phase 4: GRU/LSTM recurrence)
-├─ 5_selfplay/             (Phase 5: self-play pool)
-├─ 6_nfsp/                 (Phase 6: Neural Fictitious Self-Play)
+│  ├─ 30_comparacio_sense/ (comparacio_fase30.ipynb)
+│  ├─ 35_init_cos/         (comparacio_fase35.ipynb — Phase 3.5)
+│  └─ resultats/           (shared by 3 and 3.5: {dqn,ppo}_sb3_{scratch,frozen,finetune,...}/)
+├─ 4_memoria/              (Phase 4: LSTM recurrence + opponent pool; resultats/ppo_{complet,ablacio}_pool/)
+├─ 5_selfplay/             (Phase 5: self-play pool; resultats/ppo_selfplay_pool_9snaps/ with snapshots/)
+├─ 6_nfsp/                 (Phase 6: NFSP; resultats/ppo_nfsp/ with best_nash.zip, sl_final.pt, sl_checkpoints/)
 └─ utils/nb_utils.py       (shared plotting/analysis utilities)
 ```
 
-Each phase folder contains `comparacio_fase{N}.ipynb` for analysis and `resultats/` subdirectories with `resum_temps.txt` and `resum_fase{N}.txt` output files from training runs.
+Phases 1–2 keep one timestamped results dir per training run; phases 3–6 use a single `resultats/` with one subdir per experiment (SB3 `.zip` checkpoints + `training_log.csv`). Analysis notebooks are named `comparacio_fase{N}.ipynb`.
 
 ## Experimental Phases Summary
 
@@ -46,7 +49,7 @@ Each phase folder contains `comparacio_fase{N}.ipynb` for analysis and `resultat
 ## Key Documentation Rules
 
 - When any folder is renamed or major refactoring happens in `joc/` or `RL/`, update the corresponding markdown files here (especially `1_Arquitectura_MVC.md` and `4_Estructura_Models.md`).
-- The observation structure (card tensor `(6,4,9)` + context vector `(23,)`) is documented in `3_Entorns_Simulacio_RL.md`. Update it if `feature_extractor.py` changes.
+- The observation structure (card tensor `(6,4,9)` + context vector `(24,)`, flattened to 240 dims) is documented in `3_Entorns_Simulacio_RL.md`. Update it if `feature_extractor.py` changes.
 - `Plantilla/` contains the LaTeX thesis (`MemoriaTFG.tex`). Do not modify without explicit instruction.
 - `referencies/` stores PDFs of cited papers (PPO, DRQN, Pluribus). Do not delete.
 

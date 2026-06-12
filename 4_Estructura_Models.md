@@ -11,7 +11,11 @@ RL/models/
 │   └── model_adapter.py       # Pont entre agents RLCard i TrucModel
 ├── sb3/
 │   ├── sb3_adapter.py              # SB3PPOEvalAgent per avaluació uniforme
-│   └── sb3_features_extractor.py   # CosMultiInputSB3 (embolcall per SB3)
+│   ├── sb3_features_extractor.py   # CosMultiInputSB3 (embolcall per SB3)
+│   └── sb3_lstm_eval_agent.py      # SB3LSTMEvalAgent (RecurrentPPO amb estat ocult)
+├── nfsp/
+│   ├── average_policy.py      # AveragePolicyNet + SLAgent (política mitjana, Fase 6)
+│   └── reservoir_buffer.py    # ReservoirBuffer (mostreig reservoir pel dataset SL)
 └── model_propi/
     └── agent_regles.py        # Agent Rule-Based estocàstic
 ```
@@ -29,14 +33,14 @@ class CosMultiInput(nn.Module):
     """
     Entrades:
       · cartes  : Tensor (batch, 6, 4, 9)  — Mapa de cartes 2D
-      · context : Tensor (batch, 23)       — Informació contextual
+      · context : Tensor (batch, 24)       — Informació contextual
     Sortida:
       · Tensor (batch, 256) — Representació latent del joc
     """
 ```
 
 - **Branca CNN** sobre el mapa de cartes (6 canals × 4 pals × 9 rangs): dues capes `Conv2d` (kernel (1,3) i (3,3)) amb ReLU i `Flatten`, produint un vector de **320** dimensions.
-- **Branca densa** sobre el context continu (23 valors): `Linear(23 → 32)` + ReLU.
+- **Branca densa** sobre el context continu (24 valors): `Linear(24 → 32)` + ReLU.
 - **Fusió**: concatenació `(320 + 32 = 352)` seguida d'un `Linear(352 → 256)` + ReLU.
 
 També es defineix **`ModelPreEntrenament`**, que combina el `CosMultiInput` amb tres caps de regressió/classificació per al **pre-entrenament supervisat** (script `RL/entrenament/entrenamentEstatTruc/preentrenar_cos.py`):
@@ -59,7 +63,13 @@ Tipus suportats:
 |:--|:--|:--|
 | `"huma"` / `"default"` | — | `None` (el controlador gestiona l'acció) |
 | `"regles"` | `seed` (opcional) | `AgentRegles` envoltat amb `_RLCardModelAdapter` |
-| `"sb3"` | `ruta` (.zip), `algorisme` ∈ {`"ppo"`, `"dqn"`} (defecte `"ppo"`) | model SB3 carregat via `PPO.load`/`DQN.load` envoltat amb `SB3PPOEvalAgent` + `_RLCardModelAdapter` |
+| `"sb3"` | `ruta` (.zip), `algorisme` ∈ {`"ppo"`, `"dqn"`, `"ppo_lstm"`} (defecte `"ppo"`) | model SB3 carregat via `PPO.load`/`DQN.load`/`RecurrentPPO.load` envoltat amb `SB3PPOEvalAgent` (o `SB3LSTMEvalAgent` si `"ppo_lstm"`) + `_RLCardModelAdapter` |
+| `"nfsp_sl"` | `ruta` (state_dict `.pt` de la política mitjana) | `AveragePolicyNet` reconstruïda des del state_dict + `SLAgent` envoltat amb `_RLCardModelAdapter` |
+
+**Notes de càrrega:**
+
+- Per `"ppo"` i `"dqn"`, els models es van entrenar amb el COS congelat, de manera que l'optimitzador guardat té menys grups de paràmetres que el model reconstruït. Com que per a inferència l'optimitzador no cal, el loader fa un *patch* temporal de `set_parameters` que descarta les claus de l'optimitzador en carregar.
+- Per `"nfsp_sl"`, les mides del cap (`hidden`) i el nombre d'accions es dedueixen automàticament de les formes del state_dict, i el COS es congela després de carregar.
 
 Exemple per injectar un agent PPO-SB3 de Fase 3 a una partida interactiva:
 
@@ -116,6 +126,23 @@ class SB3PPOEvalAgent:
 ```
 
 Aquest adaptador és el que fa possible que a la Fase 1 els quatre algorismes comparats (DQN-RLCard, NFSP-RLCard, DQN-SB3, PPO-SB3) s'avaluin amb **la mateixa funció `evaluar_agent()`** i el mateix format de log. Vegeu [[5_Fase1_Entrenament]].
+
+### `sb3_lstm_eval_agent.py`
+
+Defineix **`SB3LSTMEvalAgent`**, la variant de l'adaptador anterior per a models **`RecurrentPPO`** (Fase 4). A diferència de `SB3PPOEvalAgent`, manté l'**estat ocult de l'LSTM** entre crides a `eval_step()` (passant `state=` i `episode_start=` a `model.predict()`), i exposa un mètode `reset()` que reinicialitza la memòria — cal cridar-lo a l'inici de cada sessió d'avaluació. També valida que l'acció predita sigui legal (fallback a la primera acció legal). Vegeu [[14_Fase4_MarcTeoric]].
+
+## `nfsp/` — Política mitjana de NFSP (Fase 6)
+
+Components del Neural Fictitious Self-Play introduït a la Fase 6 — vegeu [[19_Fase6_MarcTeoric]]:
+
+### `average_policy.py`
+
+- **`AveragePolicyNet`**: xarxa de la política mitjana. Reutilitza el COS compartit (`CosMultiInputSB3`, congelat, amb els mateixos pesos preentrenats que el PPO) i hi afegeix un cap MLP (`hidden=(256, 256)` per defecte) que produeix els logits d'acció.
+- **`SLAgent`**: adaptador amb interfície `eval_step(state)`. Emmascara els logits amb les accions legals i **mostreja estocàsticament** de la softmax (la política mitjana és una *mixed policy*; `deterministic=True` opcional per argmax).
+
+### `reservoir_buffer.py`
+
+- **`ReservoirBuffer`**: buffer de parelles `(obs_flat 240, action_id)` amb **mostreig reservoir** (capacitat 200k per defecte): cada transició vista té la mateixa probabilitat de ser retinguda, de manera que el dataset SL aproxima la distribució *mitjana* de comportament al llarg de tot l'entrenament, tal com requereix NFSP.
 
 ## `model_propi/` — Components desenvolupats específicament
 

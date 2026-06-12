@@ -76,7 +76,7 @@ TrucEnv(config)
 | Variable         | Descripció                                                                 |
 | :--------------- | :-------------------------------------------------------------------------- |
 | `state_shape`  | `[[state_size]] * num_jugadors` - dimensions de l'observació per jugador |
-| `action_shape` | `[[len(ACTION_LIST)]] * num_jugadors` - 18 accions possibles              |
+| `action_shape` | `[[len(ACTION_LIST)]] * num_jugadors` - 19 accions possibles              |
 
 ---
 
@@ -87,9 +87,9 @@ Transforma el diccionari d'estat del joc en un tensor numèric i context de tipu
 L'observació extreta és un diccionari amb dues claus rellevants globals sota la sub-clau `obs`:
 
 1. **`obs_cartes`**: Un tensor 3D de dimensions `(6 canals, 4 pals, 9 rangs)`. Les posicions marcades són valors one-hot a l'índex corresponent.
-2. **`obs_context`**: Un tensor 1D (vector) de 23 dimensions flotants (`(23,)`) amb variables contínues (escalables) i valors one-hot del context.
+2. **`obs_context`**: Un tensor 1D (vector) de 24 dimensions flotants (`(24,)`) amb variables contínues (escalables) i valors one-hot del context.
 
-**Total variables `state_size`**: `6 * 4 * 9 + 23` = **239** mides.
+**Total variables `state_size`**: `6 * 4 * 9 + 24` = **240** mides.
 
 ###### 1. Canals de Cartes (`obs_cartes` tensor (6,4,9))
 
@@ -99,7 +99,7 @@ Codificació on-hot segons la utilitat i propietat de destí per cada carta sego
 - **Canals 1-4**: Historial de les cartes jugades d'ell mateix (1), Rival 1 (2), Company en mode 4 jugadors (3) i Rival 2 (4).
 - **Canal 5**: Cartes assenyalades per les senyes (si actives) a l'historial del company.
 
-###### 2. Vector de Context (`obs_context` tensor (23,))
+###### 2. Vector de Context (`obs_context` tensor (24,))
 
 | Posició | Contingut                 | Descripció i format                      |
 | :------- | :------------------------ | :---------------------------------------- |
@@ -117,7 +117,8 @@ Codificació on-hot segons la utilitat i propietat de destí per cada carta sego
 | 19       | `winner_r1`             | Guanyador R1 (1.0=jo, -1.0=rival, 0.0=empat/no jugada) |
 | 20       | `winner_r2`             | Guanyador R2 (1.0=jo, -1.0=rival, 0.0=empat/no jugada) |
 | 21       | `envit_accepted`        | 1.0 si acceptat, 0.0 si no               |
-| 22       | `response_state`        | 0.0/0.5/1.0 (NO/TRUC/ENVIT PENDING)      |
+| 22       | `truc_pending`          | 1.0 si `response_state == TRUC_PENDING`, 0.0 altrament |
+| 23       | `envit_pending`         | 1.0 si `response_state == ENVIT_PENDING`, 0.0 altrament |
 
 ###### Retorn de `_extract_state`
 
@@ -125,7 +126,7 @@ Codificació on-hot segons la utilitat i propietat de destí per cada carta sego
 {
     'obs': {
         'obs_cartes': np.array([...]),  # Tensor (6,4,9) per la xarxa neuronal espacial
-        'obs_context': np.array([...])  # Vector de context (23,) de variables contínues 
+        'obs_context': np.array([...])  # Vector de context (24,) de variables contínues 
     },
     'legal_actions': OrderedDict,     # Accions legals com a OrderedDict
     'raw_obs': state,                 # Estat original (diccionari llegible)
@@ -190,11 +191,11 @@ La idea clau és que **un sol jugador és l'aprenent** (`learner_pid`), i l'altr
 
 ### Observació Aplanada
 
-A diferència de `TrucEnv`, que retorna l'observació com un diccionari `{'obs_cartes': (6,4,9), 'obs_context': (23,)}`, els wrappers **aplanen** l'observació en un únic vector de **239 dimensions** (`6*4*9 + 23 = 239`) per poder usar una `MlpPolicy` de SB3:
+A diferència de `TrucEnv`, que retorna l'observació com un diccionari `{'obs_cartes': (6,4,9), 'obs_context': (24,)}`, els wrappers **aplanen** l'observació en un únic vector de **240 dimensions** (`6*4*9 + 24 = 240`) per poder usar una `MlpPolicy` de SB3. L'aplanament viu en una única funció canònica, `flatten_obs()` de `RL/tools/obs_utils.py`, que importen tots els punts del codi que necessiten el vector pla (wrappers Gymnasium, `SB3PPOEvalAgent`, scripts d'entrenament):
 
 ```python
-def _flatten_obs(self, state) -> np.ndarray:
-    obs = state['obs']
+# RL/tools/obs_utils.py — única font de veritat de l'aplanament
+def flatten_obs(obs) -> np.ndarray:
     if isinstance(obs, dict):
         return np.concatenate(
             [obs['obs_cartes'].flatten(), obs['obs_context']], axis=0
@@ -237,4 +238,10 @@ D'aquesta manera, la paral·lelització s'aconsegueix directament amb el `Subpro
 ### Diferència entre `TrucGymEnv` i `TrucGymEnvMa`
 
 Codi gairebé idèntic: l'única cosa que canvia és el motor subjacent (`TrucEnv` vs `TrucEnvMa`). Amb `TrucGymEnv` cada episodi és una partida sencera fins a 24 punts; amb `TrucGymEnvMa` cada episodi és una sola mà. Això és crucial per la Fase 2 — vegeu [[7_Fase2_MarcTeoric]] i [[8_Fase2_Implementacio]].
+
+### `TrucGymEnvSessio` — Sessions multi-mà (Fase 4)
+
+`TrucGymEnvSessio` (`joc/entorn_ma/gym_env_sessio.py`) és un tercer wrapper construït **sobre** `TrucGymEnvMa`: un episodi RL passa a ser **N mans consecutives contra el mateix oponent**. El wrapper intercepta els `terminated=True` intermedis del motor intern (que acaba a cada mà) i només els propaga al final de les N mans. L'oponent es mostreja d'un *pool* (`opponent_pool_fn(rng)`) al principi de cada sessió, dins de `reset()`.
+
+L'objectiu és forçar les polítiques recurrents (LSTM) a acumular context *cross-mans* i potencialment detectar el patró de l'oponent de la sessió — vegeu [[14_Fase4_MarcTeoric]].
 

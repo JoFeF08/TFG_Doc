@@ -12,16 +12,17 @@ El controlador depèn només d'**interfícies** (contractes): qualsevol vista i 
 
 ### El Controlador
 
-El **controlador** (`controlador/controlador.py`) és l'únic punt que coneix tant la vista com el model. La seva funció és:
+El **controlador** (`controlador/controlador.py`) és l'únic punt que coneix tant la vista com el model. El mètode principal és `executar_partida(override_config=None)`:
 
-1. Obtenir la configuració inicial mitjançant la vista.
+1. Obtenir la configuració inicial mitjançant la vista — o, si es passa `override_config`, utilitzar-la directament (és el que fa `demo.py` per fixar el rival IA per programa).
 2. Inicialitzar el model amb aquesta configuració.
 3. En un bucle, mentre la partida no hagi acabat:
    - Saber quin jugador juga (model).
    - Si és humà: mostrar l'estat (vista), demanar una acció (vista), aplicar-la (model) i informar la vista.
    - Si és bot: obtenir l'acció del model, aplicar-la i informar la vista.
 4. Un cop acabada la partida, obtenir el resultat del model i mostrar-lo per la vista.
-5. Preguntar si es vol repetir (vista) i, si cal, mostrar el missatge de sortida.
+
+El bucle de repetició viu a part, a `bucle_principal()`: encadena partides preguntant a la vista si es vol repetir (`demanar_repetir`) i mostra el missatge de sortida quan l'usuari acaba. Alternativament, `demo.py` gestiona la seva pròpia sessió de N partides cridant `executar_partida(override_config=...)` en bucle i reinicialitzant la memòria dels agents recurrents (`reset_memoria()`) a l'inici de la sessió.
 
 El controlador **no** conté lògica de joc ni lògica d'interfície: només coordina crides entre vista i model segons el contracte.
 
