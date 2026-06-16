@@ -46,6 +46,10 @@ Phases 1–2 keep one timestamped results dir per training run; phases 3–6 use
 | Checkpoint 2 | See `16_Checkpoint2.md` |
 | 6 | NFSP achieves 91.0% win rate @ 14M steps; 3.3 pp Nash gap @ 1M steps |
 
+## Estil de la Memòria LaTeX
+
+Abans de modificar qualsevol fitxer `.tex` de `Memoria/`, llegir **`Memoria/estil.md`**. Conté les regles d'estil obligatòries: ús d'acrònims, puntuació, figures, taules, ordre alfabètic dels acrònims i la taula de primers usos ja fixats.
+
 ## Key Documentation Rules
 
 - When any folder is renamed or major refactoring happens in `joc/` or `RL/`, update the corresponding markdown files here (especially `1_Arquitectura_MVC.md` and `4_Estructura_Models.md`).

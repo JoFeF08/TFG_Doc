@@ -8,8 +8,8 @@ d'estudi, és una pràctica social: un espai on les persones s'enfronten, es coo
 negocien i, sovint, s'ensenyen mútuament. Els antropòlegs el descriuen com un
 mecanisme de transmissió cultural i d'entrenament de la intel·ligència, present en
 totes les societats conegudes~\cite{huizinga1938homo}. Jugar no és només passar
-l'estona: és practicar la presa de decisions sota incertesa, gestionar el risc i
-llegir les intencions dels altres.
+l'estona: és \textbf{practicar la presa de decisions sota incertesa, gestionar el risc i
+llegir les intencions dels altres}.
 
 Els jocs tradicionals hi afegeixen una capa de patrimoni i cultura. Aquests no són
 simples entreteniments: són codis culturals transmesos de generació en generació,
@@ -17,10 +17,10 @@ amb vocabulari propi, rituals i regles que reflecteixen el pensament social de c
 territori. El problema és que necessiten jugadors que coincideixin al mateix lloc i
 al mateix moment. La dispersió geogràfica, l'envelliment dels cercles de jugadors i
 el canvi d'hàbits d'oci fan que sigui cada cop més difícil. Sense adversaris ni
-parella, el joc s'extingeix per inanició, no per desinterès.
+parella, \textbf{el joc s'extingeix per inanició, no per desinterès}.
 
 No record exactament quan vaig aprendre a jugar a cartes. Als tretze o catorze anys
-ja hi jugaven tots els meus amics del poble. El que sé és que he tengut la sort de poder comptar amb els padrins, ties i altre gent, que m'han pogut ensenyar els distints jocs tradicionals, entre ells jocs de cartes. Al meu poble, jocs com el Terceti (que avui quasi ja no es juga a cap altre lloc) o
+ja hi jugaven tots els meus amics del poble. El que sé és que he tengut la sort de poder comptar amb els padrins, ties i altra gent, que m'han pogut ensenyar els distints jocs tradicionals, entre ells jocs de cartes. Al meu poble, jocs com el Terceti (que avui quasi ja no es juga a cap altre lloc) o
 el Truc formen part de la vida quotidiana, transmesos de generació en generació
 sense que ningú ho pensés gaire.
 
@@ -28,8 +28,8 @@ Però amb els anys m'he anat adonant que cada cop és més difícil trobar gent 
 seure a una taula. El cercle de jugadors envelleix, i quan no hi ha prou persones
 disponibles el Truc simplement no es pot jugar. Aquesta inquietud és el que m'ha
 duit a fer aquest \ac{TFG}: crear una versió del Truc que es pugui jugar contra
-un agent d'aprenentatge per reforç, de manera que el joc pugui continuar viu encara
-que no hi hagi quatre humans disponibles.
+un agent d'aprenentatge per reforç, de manera que \textbf{el joc pugui continuar viu encara
+que no hi hagi quatre humans disponibles}.
 
 \section{La intel·ligència artificial en el joc}
 
@@ -47,8 +47,8 @@ El denominador comú d'aquests avenços és el \acf{DRL}: la combinació de l'\a
 clàssic amb xarxes neuronals profundes. L'\ac{AR} permet a un agent aprendre
 interactuant amb un entorn i rebent recompenses; les xarxes profundes li permeten
 representar espais d'estats molt complexos sense necessitat de definir manualment les
-característiques rellevants. La combinació dels dos ha permès que agents sense cap
-coneixement inicial arribin a nivells humans en diferents dominis (escacs, Go, Dota~2,
+característiques rellevants. La combinació dels dos ha permès que \textbf{agents sense cap
+coneixement inicial arribin a nivells humans} en diferents dominis (escacs, Go, Dota~2,
 etc.). Aquest treball segueix el mateix enfocament: xarxes neuronals profundes
 combinades amb \ac{AR} per aprendre a jugar al Truc partint de zero.
 
@@ -63,7 +63,7 @@ informació: les cartes dels adversaris, les intencions futures, els recursos oc
 Formalment, un joc d'informació parcial es modela com un \acf{POMDP}: l'agent
 rep observacions parcials de l'estat real del món i ha d'actuar sense visibilitat
 completa. L'estratègia òptima ja no consisteix a calcular la millor jugada donada la
-posició, sinó a raonar sobre els estats ocults i el possible comportament d'un adversari.
+posició, sinó a \textbf{raonar sobre els estats ocults i el possible comportament d'un adversari}.
 
 Els jocs de pòquer han estat el principal camp d'experimentació en informació parcial.
 El 2017, Libratus va guanyar jugadors professionals de Texas Hold'em de dos jugadors
@@ -103,24 +103,18 @@ factors el fa substancialment diferent dels jocs estudiats fins ara en la litera
 
 \section{Objectius i estructura d'aquest treball}
 
-Per complir amb l'objectiu d'aquest \ac{TFG} (\emph{desenvolupar i avaluar agents
-d'\ac{AR} capaços de jugar al Truc de manera competitiva, partint de zero i sense
-cap coneixement previ del joc}) ens cal primer implementar una versió digital
-completa i jugable del Truc (incloent les modalitats de 2~vs~2 amb senyes).
-L'entrenament dels agents es circumscriu a la variant d'1~vs~1 sense senyes;
-l'extensió a agents cooperatius per parelles s'identifica com a línia de recerca
-futura. Concretament, el treball s'articula al voltant de tres objectius principals:
+L'objectiu d'aquest \ac{TFG} és desenvolupar i avaluar agents d'\ac{AR} capaços de jugar al Truc de
+manera competitiva, partint de zero i sense cap coneixement previ del joc. L'entrenament dels agents es circumscriu
+a la variant d'1~vs~1 sense senyes; l'extensió a agents cooperatius  per
+parelles s'identifica (2~vs~2 amb senyes) com a línia de recerca futura. Per assolir aquest objectiu, el treball es desglossa en tres subobjectius:
 
 \begin{enumerate}
-  \item \textbf{Modelització, implementació i aplicació jugable.} Implementar el
-    motor complet del joc (envit, truc, apostes i senyes) seguint una arquitectura
-    \ac{MVC} que desacobla nítidament la lògica del joc, el control i la interfície.
-    L'aplicació compta amb dues interfícies: consola (text) i escriptori (gràfica
-    amb imatges de naips i interacció per ratolí). La interfície d'escriptori permet
-    partides 1~vs~1 (humà contra humà o humà contra agent) i 2~vs~2 humà contra
-    humà amb suport de senyes. El motor s'exposa alhora com a entorn estàndard
-    compatible amb les biblioteques d'\ac{AR}
-    (RLCard~\cite{zha2019rlcard} i Stable-Baselines3~\cite{raffin2021sb3}).
+  \item \textbf{Modelització, implementació i aplicació jugable.} Dissenyar i
+    implementar un simulador del Truc que implementi totes les regles del joc
+    (envit, truc i apostes), oferir un mode de joc jugador contra agent, i
+    exposar el simulador com a entorn estàndard compatible amb les biblioteques
+    d'\ac{AR} existents. El motor admet també la variant 2~vs~2 amb senyes,
+    tot i que l'entrenament d'agents es limita a 1~vs~1.
 
   \item \textbf{Comparació d'algorismes i tècniques d'entrenament.} Avaluar quatre
     algorismes (\acf{DQN} i \acf{NFSP} via RLCard, i \ac{DQN} i \acf{PPO} via SB3)
