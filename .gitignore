@@ -24,6 +24,10 @@ notebooks/5_selfplay/resultats/ppo_selfplay_pool_9snaps/snapshots/
 # Planning intern (no forma part de la memòria)
 planning.md
 
+# Codi font de referència (no forma part de la documentació)
+codi/
+fet/
+
 # Auxiliars de compilació LaTeX
 Memoria/aux/
 Memoria/*.aux

@@ -18,7 +18,7 @@ motor de joc tant a una interfície humana com als entorns d'\ac{AR}
 El Truc és un joc de bases i apostes que es juga per parelles (dos contra dos) o
 un contra un. L'objectiu és ser el primer equip a assolir els 24~punts d'una
 \emph{cama}. Es fa servir la baralla espanyola reduïda a 36 cartes: dels quatre
-colls ---Ors, Copes, Espases i Bastos--- s'eliminen els 2, 8 i 9, de manera que
+colls (Ors, Copes, Espases i Bastos) s'eliminen els 2, 8 i 9, de manera que
 cada coll conserva nou rangs: $\{1, 3, 4, 5, 6, 7, 10, 11, 12\}$.
 
 \subsection*{Jerarquia de les cartes}
@@ -29,7 +29,7 @@ implementa el jutge del joc (\texttt{TrucJudger}): les quatre cartes superiors s
 úniques i reben noms propis, mentre que la resta s'ordena per rang amb desempats
 entre colls.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \begin{tabular}{cll}
     \toprule
@@ -41,7 +41,7 @@ entre colls.
     4  & As de Bastos              & El basto \\
     5  & 7 d'Espases               & Manilla \\
     6  & 7 d'Ors                   & Manilla \\
-    7  & Els tresos                & --- \\
+    7  & Els tresos                & (cap) \\
     8  & Assos d'Ors i de Copes    & Assos bords \\
     9  & Els dotzes                & Figures \\
     10 & Els onzes                 & Figures \\
@@ -61,30 +61,44 @@ independents que es resolen per separat: \textbf{l'Envit} i \textbf{el Truc}.
 
 \subsection*{L'Envit}
 
-L'Envit és l'aposta sobre la força de la mà en punts. El valor d'una mà es calcula
-sumant els valors de les dues cartes més altes d'un mateix coll i afegint-hi
-20~punts base. A efectes d'aquesta suma, les figures (10, 11 i 12) valen 0, amb dues
-excepcions: el 10~d'Ors compta 7 i l'11~de Bastos compta 8, i tots dos lliguen amb
-qualsevol coll. Així, una mà amb el 7 i el 6~d'Espases val
-$7 + 6 + 20 = 33$~punts.
+L'Envit és l'aposta sobre la força de la mà en punts, i \textbf{els jugadors només ho poden
+cantar a la primera ronda, abans de jugar la seva primera carta}. El valor d'una mà es
+calcula sumant els valors de les dues cartes més altes d'un mateix coll i
+afegint-hi 20~punts base, si hi ha dues cartes del mateix coll. A efectes d'aquesta suma, les figures (10, 11 i 12)
+valen~0, amb dues excepcions: el 10~d'Ors compta~7 i l'11~de Bastos compta~8,
+i tots dos lliguen amb qualsevol coll. Alguns exemples:
 
-Quan un jugador canta envit, l'equip contrari pot acceptar, apujar l'aposta o
-retirar-se cedint un punt. Cada crit incrementa els punts en joc segons
-l'escala de la taula~\ref{tab:envit}.
+\begin{itemize}
+  \item 7 i 6 d'Espases: $7 + 6 + 20 = 33$~punts.
+  \item As i 5 de Copes: $1 + 5 + 20 = 26$~punts.
+  \item 11 de Bastos i 3 d'Ors: $8 + 3 + 20 = 31$~punts (el 11 de Bastos
+        compta~8 i lliga amb Ors).
+  \item Tres cartes de colls distints (p. ex. 7~d'Ors, 6~de Copes i As~de
+        Bastos): no hi ha cap parella del mateix coll, de manera que el jugador
+        no té envit però ho pot cantar igualment com a farol.
+\end{itemize}
 
-\begin{table}[htbp]
+Si cap equip canta envit durant la mà, no es disputa cap punt d'envit. Un cop
+cantat, l'equip contrari pot acceptar, contra-apostar o retirar-se. La
+retirada cedeix sempre \textbf{el valor acumulat fins al moment}: si un equip
+ha acceptat l'\emph{Envit} (2~pts en joc) i l'adversari canta \emph{Un
+altre}, retirar-se en aquest punt cedeix 2~punts, no~1 com passaria si rebutgis un \emph{Envit}. Cada crit incrementa
+els punts en joc segons la taula~\ref{tab:envit}. En cas d'empat de puntuació,
+guanya l'equip que és \textbf{mà} (el jugador que juga immediatament després del qui ha repartit).
+
+\begin{table}[H]
   \centering
-  \begin{tabular}{ll}
+  \begin{tabular}{lll}
     \toprule
-    Crit & Punts en joc \\
+    Crit & Punts en joc & Si et retires \\
     \midrule
-    Envit     & 2 \\
-    Un altre  & 4 \\
-    Dos més   & 6 \\
-    La Falta  & els punts que falten al líder per completar la cama \\
+    Envit     & 2 & 1~pt \\
+    Un altre  & 4 & 2~pts (el nivell anterior acceptat) \\
+    Dos més   & 6 & 4~pts \\
+    La Falta  & punts que falten al líder & 6~pts \\
     \bottomrule
   \end{tabular}
-  \caption{Escala d'apostes de l'Envit.}
+  \caption{Escala d'apostes de l'Envit i punts cedits en cas de retirada.}
   \label{tab:envit}
 \end{table}
 
@@ -96,9 +110,11 @@ en guanya la de rang superior segons la taula~\ref{tab:jerarquia}; l'equip que
 s'endú dues bassetges guanya la mà. En qualsevol moment un jugador pot cantar
 \emph{Truc}, obrint una escala d'apostes independent de l'Envit
 (taula~\ref{tab:truc}). Com en l'Envit, el contrari pot acceptar, contra-apostar o
-retirar-se cedint el nivell anterior.
+retirar-se cedint el nivell anterior. Els empats es resolen de la manera
+següent: si la primera ronda acaba en empat, la guanya qui s'imposi a la segona; si és la segona la que empata, puntua qui havia guanyat la primera; si empaten totes dues primeres rondes i la tercera també acaba en empat,
+guanya l'equip que és \textbf{mà}.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \begin{tabular}{ll}
     \toprule
@@ -128,7 +144,7 @@ partides 2~contra~2 entre humans; l'entrenament dels agents es fa sobre la varia
 \section{Arquitectura del simulador}
 \label{sec:mvc}
 
-El simulador segueix el patró \acf{MVC}, que separa el sistema en tres
+El simulador segueix el patró \ac{MVC}, que separa el sistema en tres
 responsabilitats independents:
 
 \begin{itemize}
@@ -139,14 +155,14 @@ responsabilitats independents:
         vista i consultant i modificant l'estat a través del model.
 \end{itemize}
 
-La clau del disseny és que el controlador no depèn de cap implementació concreta,
-sinó de dues \emph{interfícies} (contractes): qualsevol vista i qualsevol model que
-les satisfacin són intercanviables sense tocar el controlador. Aquesta indirecció
-és la que permet reutilitzar el mateix nucli de joc per a una interfície gràfica
-humana o per als adaptadors d'\ac{AR}. La figura~\ref{fig:mvc} resumeix aquesta
-organització.
+La clau del disseny és que el controlador (\texttt{controlador/controlador.py})
+no depèn de cap implementació concreta, sinó de dues \emph{interfícies}
+(contractes): qualsevol vista i qualsevol model que les satisfacin són
+intercanviables sense tocar el controlador. Aquesta indirecció és la que permet
+reutilitzar el mateix nucli de joc per a una interfície gràfica humana o per als
+adaptadors d'\ac{AR}. La figura~\ref{fig:mvc} resumeix aquesta organització.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \begin{tikzpicture}[
     bloc/.style={draw, rounded corners=4pt, minimum width=2.6cm,
@@ -154,8 +170,8 @@ organització.
     >=Stealth, thick
   ]
     \node[bloc] (vista) {Vista\\[2pt]\footnotesize consola / escriptori};
-    \node[bloc, right=3.2cm of vista] (ctrl) {Controlador};
-    \node[bloc, right=3.2cm of ctrl] (model) {Model\\[2pt]\footnotesize \texttt{TrucGame}};
+    \node[bloc, right=2.0cm of vista] (ctrl) {Controlador};
+    \node[bloc, right=2.0cm of ctrl] (model) {Model\\[2pt]\footnotesize \texttt{TrucGame}};
     \draw[<->] (vista) -- node[above, font=\footnotesize]{contracte}
                               node[below, font=\footnotesize]{\texttt{Vista}} (ctrl);
     \draw[<->] (ctrl) -- node[above, font=\footnotesize]{contracte}
@@ -167,43 +183,49 @@ organització.
 
 \subsection*{Els contractes}
 
-El controlador parla amb el model a través del protocol \texttt{Model}
-(\texttt{interficie\_model.py}) i amb la vista a través del protocol \texttt{Vista}
-(\texttt{interficie\_vista.py}). Les taules~\ref{tab:contracte-model}
+El controlador interactua amb el model mitjançant el protocol \texttt{Model}
+i amb la vista mitjançant el protocol \texttt{Vista}, tots dos definits a
+\texttt{controlador/interficie\_model.py} i \texttt{vista/interficie\_vista.py}
+respectivament. Les taules~\ref{tab:contracte-model}
 i~\ref{tab:contracte-vista} en resumeixen els mètodes principals.
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \begin{tabular}{ll}
     \toprule
     Mètode & Funció \\
     \midrule
-    \texttt{iniciar(config)}      & Crea i inicialitza una partida \\
-    \texttt{get\_estat(pid)}      & Retorna l'estat visible per a un jugador \\
-    \texttt{get\_jugador\_actual} & Indica qui ha de jugar ara \\
-    \texttt{es\_huma(pid)}        & Indica si el jugador és humà \\
-    \texttt{get\_accio\_bot(pid)} & Retorna l'acció triada per un bot \\
-    \texttt{aplicar\_accio(a)}    & Aplica una acció i avança l'estat \\
-    \texttt{es\_final()}          & Indica si la partida ha acabat \\
-    \texttt{get\_resultat()}      & Retorna el marcador i els \emph{payoffs} finals \\
+    \texttt{iniciar(config)}               & Crea i inicialitza una partida \\
+    \texttt{get\_estat(pid)}               & Retorna l'estat visible per a un jugador \\
+    \texttt{get\_jugador\_actual()}        & Indica qui ha de jugar ara \\
+    \texttt{es\_huma(pid)}                 & Indica si el jugador és humà \\
+    \texttt{get\_accio\_bot(pid)}          & Retorna l'acció triada per un bot \\
+    \texttt{aplicar\_accio(a)}             & Aplica una acció i avança l'estat \\
+    \texttt{get\_guanyador\_envit\_recent()} & Retorna equip, punts i detall de l'envit tancat \\
+    \texttt{get\_guanyador\_truc\_recent()} & Retorna equip i punts del truc tancat \\
+    \texttt{es\_final()}                   & Indica si la partida ha acabat \\
+    \texttt{get\_resultat()}               & Retorna el marcador i els \emph{payoffs} finals \\
     \bottomrule
   \end{tabular}
   \caption{Mètodes principals del contracte \texttt{Model}.}
   \label{tab:contracte-model}
 \end{table}
 
-\begin{table}[htbp]
-  \centering
+\begin{table}[H]
+  \centering\small
   \begin{tabular}{ll}
     \toprule
     Mètode & Funció \\
     \midrule
-    \texttt{demanar\_config()}          & Demana la configuració de la partida \\
-    \texttt{mostrar\_estat(estat)}      & Mostra l'estat actual del joc \\
-    \texttt{escollir\_accio(legals)}    & Presenta les accions legals i en retorna una \\
-    \texttt{mostrar\_accio(pid, nom)}   & Informa de l'acció feta per un jugador \\
-    \texttt{mostrar\_fi\_partida(\dots)} & Mostra el resultat final \\
-    \texttt{demanar\_repetir()}         & Pregunta si es vol jugar una altra partida \\
+    \texttt{demanar\_config()}              & Demana la configuració de la partida \\
+    \texttt{mostrar\_estat(estat)}          & Mostra l'estat actual del joc \\
+    \texttt{escollir\_accio(legals, estat)} & Presenta les accions legals i en retorna una \\
+    \texttt{mostrar\_accio(pid, nom, bot)}  & Informa de l'acció feta (bot afegeix retard visual) \\
+    \texttt{mostrar\_guanyador\_envit(\dots)} & Comunica qui ha guanyat l'envit de la mà \\
+    \texttt{mostrar\_guanyador\_truc(\dots)}  & Comunica qui ha guanyat el truc \\
+    \texttt{mostrar\_fi\_partida(\dots)}    & Mostra el resultat final \\
+    \texttt{demanar\_repetir()}             & Pregunta si es vol jugar una altra partida \\
+    \texttt{mostrar\_sortint()}             & Indica que l'usuari surt de l'aplicació \\
     \bottomrule
   \end{tabular}
   \caption{Mètodes principals del contracte \texttt{Vista}.}
@@ -216,15 +238,41 @@ El controlador (\texttt{Controlador.executar\_partida}) implementa un bucle úni
 que avança mentre la partida no acabi. A cada iteració consulta qui té el torn; si
 és un humà, mostra l'estat per la vista, li demana una acció i l'aplica al model;
 si és un bot, obté l'acció directament del model i l'aplica. Després de cada jugada
-comunica a la vista els esdeveniments rellevants ---qui ha guanyat l'envit o el
-truc--- i, en acabar, mostra el resultat. Tota la lògica de joc resta al model i
+comunica a la vista els esdeveniments rellevants (qui ha guanyat l'envit o el
+truc) i, en acabar, mostra el resultat. Tota la lògica de joc resta al model i
 tota la presentació resta a la vista; el controlador només coordina.
 
-L'adaptador principal del model és \texttt{ModelInteractiu}, que embolcalla una
-instància de \texttt{TrucGame} i li afegeix dues capacitats: aïllar el motor de
-joc darrere del contracte i injectar models d'\ac{AR} preentrenats als jugadors
-automàtics, de manera que un bot pugui ser tant un agent aleatori com una xarxa
-neuronal entrenada.
+\begin{lstlisting}[language=Python, caption={Bucle principal de \texttt{Controlador.executar\_partida}.}, label={lst:bucle}]
+def executar_partida(self, override_config=None):
+    config = override_config or self.vista.demanar_config()
+    self.model.iniciar(config)
+
+    while not self.model.es_final():
+        pid = self.model.get_jugador_actual()
+        if self.model.es_huma(pid):
+            estat = self.model.get_estat(pid)
+            self.vista.mostrar_estat(estat)
+            accio = self.vista.escollir_accio(
+                estat["accions_legals"], estat)
+            self.model.aplicar_accio(accio)
+            self.vista.mostrar_accio(pid, ACTION_LIST[accio],
+                                     es_bot=False)
+        else:
+            accio, nom = self.model.get_accio_bot(pid)
+            self.model.aplicar_accio(accio)
+            self.vista.mostrar_accio(pid, nom, es_bot=True)
+        self._comunicar_esdeveniments_recents()
+
+    resultat = self.model.get_resultat()
+    self.vista.mostrar_fi_partida(
+        resultat["score"], resultat["payoffs"])
+\end{lstlisting}
+
+L'adaptador principal del model és \texttt{ModelInteractiu}, que embolcalla
+una instància de \texttt{TrucGame} i li afegeix dues capacitats: aïllar el
+motor de joc darrere del contracte i injectar models d'\ac{AR} preentrenats
+als jugadors automàtics, de manera que un bot pugui ser tant un agent aleatori
+com una xarxa neuronal entrenada.
 
 \subsection*{Les interfícies}
 
@@ -234,32 +282,44 @@ depuració en entorns sense pantalla. La \textbf{vista d'escriptori} és una int
 gràfica que representa l'estat amb imatges reals de naips i recull les accions per
 clic de ratolí, intercalant retards artificials en els moviments dels bots per
 emular el ritme d'un rival humà. La interfície gràfica permet jugar partides
-1~contra~1 ---humà contra humà o humà contra agent--- i 2~contra~2 entre humans amb
+1~contra~1 (humà contra humà o humà contra agent) i 2~contra~2 entre humans amb
 suport de senyes.
 
 % ────────────────────────────────────────────────────────────────────────────
 \section{El motor de joc}
 \label{sec:motor}
 
-El cor del model és la classe \texttt{TrucGame}, que gestiona tot l'estat de la
-partida ---jugadors, cartes, apostes, rondes i puntuació--- de manera independent de
-qualsevol interfície. Delega responsabilitats concretes en tres rols especialitzats:
-\texttt{TrucDealer} barreja i reparteix les cartes; \texttt{TrucJudger} resol la
-jerarquia, els guanyadors de rondes i el càlcul de l'envit; i \texttt{TrucPlayer}
-representa cada jugador, mantenint la mà actual, la mà inicial ---necessària per
-resoldre l'envit encara que les cartes ja s'hagin jugat--- i, opcionalment, el model
-que decideix les seves accions.
+El cor del model és la classe \texttt{TrucGame} (\texttt{entorn/game.py}), que
+gestiona tot l'estat de la partida (jugadors, cartes, apostes, rondes i
+puntuació) de manera independent de qualsevol interfície. Delega
+responsabilitats concretes en tres rols especialitzats, cadascun al seu propi
+fitxer dins \texttt{entorn/rols/}: \texttt{TrucDealer} barreja i reparteix les
+cartes; \texttt{TrucJudger} resol la jerarquia, els guanyadors de rondes i el
+càlcul de l'envit; i \texttt{TrucPlayer} representa cada jugador, mantenint la
+mà actual, la mà inicial (necessària per resoldre l'envit encara que les cartes
+ja s'hagin jugat) i, opcionalment, el model que decideix les seves accions.
 
 \subsection*{Accions i estat de resposta}
 
-El conjunt d'accions del joc és fix i consta de 19 accions: tres per jugar cada
-carta de la mà, set per a les apostes i respostes (apostar envit, apostar truc,
-acceptar, retirar-se i passar) i nou per a les senyes. En cada torn, el motor
-restringeix les accions legals segons la situació. Un mecanisme central per a
-aquesta restricció és l'\emph{estat de resposta}, que pot prendre tres valors:
-sense aposta pendent, truc pendent o envit pendent. Mentre hi ha una aposta pendent
-de resposta, l'adversari només pot acceptar-la, contra-apostar-la o retirar-se: no
-pot jugar cartes ni fer cap altra acció fins que l'aposta es resolgui.
+El conjunt d'accions del joc és fix i consta de 19 accions: tres per jugar
+cada carta de la mà, set per a apostes i respostes, i nou per a les senyes.
+Les accions d'aposta es divideixen per joc: per a l'Envit,
+\texttt{apostar\_envit}, \texttt{vull\_envit} i \texttt{fora\_envit};
+per al Truc, \texttt{apostar\_truc}, \texttt{vull\_truc},
+\texttt{fora\_truc} i \texttt{passar}.
+Acceptació i rebuig existeixen per separat: \texttt{fora\_envit} no clou la
+mà (el joc continua sense puntuar l'envit), mentre que \texttt{fora\_truc}
+implica retirar-se i cedeix els punts en joc. En cada torn, el motor
+restringeix les accions legals segons la situació.
+
+Un mecanisme central és l'\emph{estat de resposta}
+(enum \texttt{ResponseState}), que pot prendre tres valors:
+\texttt{NO\_PENDING}, \texttt{TRUC\_PENDING} i \texttt{ENVIT\_PENDING}. Mentre hi ha una aposta pendent, l'adversari
+només pot acceptar-la, contra-apostar-la o retirar-se: no pot jugar cartes ni fer
+cap altra acció fins que l'aposta es resolgui. De manera anàloga, quan l'envit
+queda resolt els punts no s'afegeixen immediatament al marcador sinó que queden
+suspesos fins que el truc de la mà es tanca, de manera que el marcador reflecteix
+sempre una mà completament decidida.
 
 \subsection*{Les fases del torn}
 
@@ -269,37 +329,50 @@ senyes estan actives i permet registrar un gest abans de jugar; si estan desacti
 se salta completament. La \textbf{Fase 1} unifica apostes i joc de cartes: és on es
 canta l'envit o el truc, es responen les apostes i es juguen les cartes.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
   \centering
   \begin{tikzpicture}[
     bloc/.style={draw, rounded corners=4pt, minimum height=1.0cm, align=center,
-                 font=\small, inner xsep=8pt},
-    >=Stealth, thick, node distance=1.6cm
+                 font=\small, inner xsep=5pt},
+    >=Stealth, thick, node distance=0.9cm
   ]
     \node[bloc] (inici) {Inici de ronda};
     \node[bloc, right=of inici] (f0) {Fase 0\\[2pt]\footnotesize senyals (opcional)};
     \node[bloc, right=of f0] (f1) {Fase 1\\[2pt]\footnotesize apostes i joc};
     \node[bloc, right=of f1] (eval) {Avaluació\\[2pt]\footnotesize de la jugada};
+    \node[bloc, above=1.8cm of f1] (resp)
+          {Resposta adversari\\[2pt]\footnotesize (\texttt{PENDING})};
+
     \draw[->] (inici) -- (f0);
     \draw[->] (f0) -- node[above, font=\footnotesize]{passar / senya} (f1);
-    \draw[->] (f1) -- (eval);
-    \draw[->] (eval.south) -- ++(0,-0.7) -| node[below, font=\footnotesize, pos=0.25]{nova ronda} (inici.south);
+    \draw[->] (f1) -- node[above, font=\footnotesize]{carta} (eval);
+    \draw[->] (eval.south) -- ++(0,-0.7) -|
+              node[below, font=\footnotesize, pos=0.25]{nova ronda} (inici.south);
+
+    \draw[->] ([xshift=5pt]f1.north) --
+              node[right, font=\footnotesize]{canta truc/envit}
+              ([xshift=5pt]resp.south);
+    \draw[->] ([xshift=-5pt]resp.south) --
+              node[left, font=\footnotesize]{accepta / contra / rebutja}
+              ([xshift=-5pt]f1.north);
   \end{tikzpicture}
-  \caption{Fases d'un torn. Si les senyes estan desactivades, la Fase~0 se salta.}
+  \caption{Fases d'un torn. Sense senyes, la Fase~0 se salta.
+           Quan es canta truc o envit, el motor entra en estat \texttt{PENDING}
+           i el torn passa a l'adversari fins que respon; resoluda l'aposta,
+           el joc reprèn la Fase~1.}
   \label{fig:fases}
 \end{figure}
 
 \subsection*{Fi de mà i fi de partida}
 
-El motor distingeix dos nivells de finalització. La funció \texttt{is\_ma\_over}
-indica que la mà actual ha acabat ---perquè hi ha un guanyador per rondes o perquè
-algú s'ha retirat---, moment en què es reparteixen els punts i es reparteix una mà
-nova. La funció \texttt{is\_over} indica que la partida sencera ha acabat, quan un
-equip arriba a la puntuació final de la cama.
+El motor distingeix dos nivells de finalització, tots dos implementats a
+\texttt{entorn/game.py}. La funció \texttt{is\_ma\_over} indica que la mà actual
+ha acabat (perquè hi ha un guanyador per rondes o perquè algú s'ha retirat),
+moment en què es reparteixen els punts i es reparteix una mà nova. La funció
+\texttt{is\_over} indica que la partida sencera ha acabat, quan un equip arriba
+a la puntuació final de la cama.
 
-A banda del resultat final de la partida, el motor emet també senyals de recompensa
-intermèdia (\texttt{reward\_intermedis}) després de cada jugada rellevant. Aquestes
-senyals són la base del \emph{reward shaping} que guia l'aprenentatge dels agents;
-el seu disseny detallat es presenta en el context dels entorns d'\ac{AR}
-(capítol~\ref{cap:entorns}) i de la metodologia d'entrenament
-(capítol~\ref{cap:metodologia}).
+A banda del resultat final de la partida, el motor emet senyals de recompensa
+intermèdia (\texttt{reward\_intermedis}) després de cada jugada rellevant, que
+s'inclouen dins l'estat retornat a cada pas. El disseny detallat d'aquestes
+recompenses es descriu al capítol~\ref{cap:entorns}.

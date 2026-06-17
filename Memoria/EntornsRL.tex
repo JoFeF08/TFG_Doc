@@ -1,0 +1,284 @@
+%!TeX root=MemoriaTFG.tex
+
+\chapter{Entorns d'Aprenentatge per Reforç}
+\label{cap:entorns}
+
+Per entrenar agents d'\ac{AR} al Truc cal adaptar el motor de joc a la interfície
+estàndard que esperen les biblioteques d'\ac{AR}. Aquesta adaptació no és trivial:
+el motor gestiona el torn de múltiples jugadors, manté un estat intern ric i emet
+senyals de recompensa que les biblioteques genèriques no entenen de manera nativa.
+Aquest capítol descriu com s'ha organitzat aquesta adaptació en capes, quines
+decisions s'han pres per representar l'observació i les accions, i com s'ha dissenyat
+el sistema de recompenses.
+
+\section{Arquitectura en capes}
+\label{sec:capes-entorn}
+
+L'entorn s'organitza en dos nivells d'abstracció superposats (figura~\ref{fig:capes-entorn}):
+
+\begin{enumerate}
+  \item \textbf{Capa RLCard} (\texttt{TrucEnv} / \texttt{TrucEnvMa}): hereta
+        de la classe base \texttt{Env} de RLCard i encapsula el bucle de joc.
+        S'encarrega de convertir l'estat intern del motor en observacions estructurades
+        (mètode \texttt{\_extract\_state}), d'exposar les accions legals en cada pas
+        (\texttt{\_get\_legal\_actions}) i de recollir les trajectòries completes.
+
+  \item \textbf{Capa Gymnasium} (\texttt{TrucGymEnv} / \texttt{TrucGymEnvMa}):
+        embolcalla la capa RLCard amb la interfície estàndard de Gymnasium (mètodes
+        \texttt{reset} i \texttt{step}) per fer-la compatible amb \acf{SB3}.
+        Gestiona els torns de l'oponent (\texttt{\_skip\_opponent\_turns}) i acumula
+        els rewards intermedis que es generen entre dues accions consecutives de
+        l'agent aprenent.
+\end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+      box/.style={draw, rounded corners=3pt, minimum width=2.4cm, minimum height=0.9cm,
+                  align=center, font=\small},
+      arr/.style={-{Stealth}, thick},
+      node distance=1.1cm and 0.8cm
+  ]
+    \node[box] (motor)   {\texttt{TrucGame}\\(motor)};
+    \node[box, right=of motor] (rlcard)  {\texttt{TrucEnv}\\(RLCard)};
+    \node[box, right=of rlcard] (gym)    {\texttt{TrucGymEnv}\\(Gymnasium)};
+    \node[box, right=of gym]    (sb3)    {\ac{SB3} / PPO\\/ DQN / NFSP};
+
+    \draw[arr] (motor)  -- (rlcard);
+    \draw[arr] (rlcard) -- (gym);
+    \draw[arr] (gym)    -- (sb3);
+
+    \node[below=0.35cm of motor,  font=\footnotesize, text=gray] {lògica joc};
+    \node[below=0.35cm of rlcard, font=\footnotesize, text=gray] {trajectòries};
+    \node[below=0.35cm of gym,    font=\footnotesize, text=gray] {interfície RL};
+    \node[below=0.35cm of sb3,    font=\footnotesize, text=gray] {algoritmes};
+  \end{tikzpicture}
+  \caption{Capes de l'entorn. \texttt{TrucEnvMa} i \texttt{TrucGymEnvMa} segueixen
+           la mateixa estructura però amb episodi = 1~mà.}
+  \label{fig:capes-entorn}
+\end{figure}
+
+La distinció entre \texttt{TrucEnv} i \texttt{TrucEnvMa} rau en la granularitat de
+l'episodi: \texttt{TrucEnv} fa córrer una partida completa fins als 24~punts (centenars
+de passos), mentre que \texttt{TrucEnvMa} atura l'episodi quan acaba la mà actual
+(entre 6 i 20~passos aproximadament). Aquesta variant de gra fi és clau per al
+\emph{curriculum learning}: l'agent aprèn primer a gestionar mans individuals i
+posteriorment s'enfronta a partides senceres. El detall del curriculum es descriu
+al capítol~\ref{cap:metodologia}.
+
+A més d'aquests dos parells, hi ha dues variants especialitzades:
+
+\begin{itemize}
+  \item \texttt{TrucGymEnvSessio} (\texttt{joc/entorn\_ma/gym\_env\_sessio.py}):
+        l'episodi agrupa $N$ mans consecutives contra el mateix oponent (per defecte
+        $N=5$). L'oponent se samplea del \emph{pool} a cada \texttt{reset()}, cosa
+        que obliga l'agent a acumular context entre mans i potencialment detectar els
+        patrons de l'oponent. S'ha usat a la Fase~4 (memòria cross-mans, \ac{DRQN}).
+
+  \item \texttt{parallel\_env\_ma.py}: procés fill (\texttt{worker}) que executa
+        \texttt{TrucEnvMa} en un procés separat via \texttt{multiprocessing} i
+        retorna les trajectòries amb els rewards intermedis al procés principal.
+        Permet col·lectar dades de múltiples episodis en paral·lel durant l'entrenament
+        propi de \ac{NFSP}.
+\end{itemize}
+
+El mètode \texttt{set\_opponent()} de \texttt{TrucGymEnv} permet canviar l'agent
+oponent en calent sense reconstruir l'entorn; això és imprescindible per als callbacks
+d'entrenament que implementen el pool d'oponents i el curriculum.
+
+\section{Espai d'observació}
+\label{sec:observacio}
+
+L'observació que rep l'agent en cada pas és un diccionari amb dues entrades
+complementàries, generades per \texttt{\_extract\_state} a \texttt{env.py}:
+
+\begin{itemize}
+  \item \texttt{obs\_cartes}: tensor de forma $(6, 4, 9)$, que codifica en
+        format \emph{one-hot} la presència de cada carta en sis canals semàntics.
+  \item \texttt{obs\_context}: vector de 24~valors reals que recull informació
+        numèrica de l'estat de la partida.
+\end{itemize}
+
+Junts representen l'estat observable del joc en 240~dimensions. La funció
+\texttt{flatten\_obs} és l'única font de veritat per a la conversió a vector pla:
+
+\begin{equation}
+  \mathbf{o} = \bigl[\,\texttt{obs\_cartes.flatten()}\;\|\;\texttt{obs\_context}\,\bigr]
+  \in \mathbb{R}^{216+24} = \mathbb{R}^{240}
+  \label{eq:obs-flat}
+\end{equation}
+
+Qualsevol codi que necessiti el vector pla (algoritmes SB3, NFSP, avaluació) crida
+aquesta funció per garantir coherència.
+
+\subsection*{Tensor de cartes (6, 4, 9)}
+
+Les dimensions del tensor corresponen a: eix~0 = canal semàntic (6), eix~1 = pal
+(4: Espases, Copes, Ors, Bastos), eix~2 = rang (9: $\{1,3,4,5,6,7,10,11,12\}$).
+Cada cel·la val~1 si la carta corresponent hi és present i~0 altrament.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{cll}
+    \toprule
+    Canal & Contingut & Descripció \\
+    \midrule
+    0 & Mà actual         & Cartes que té l'agent a la mà \\
+    1 & Historial propi   & Cartes que ja ha jugat l'agent \\
+    2 & Historial Rival 1 & Cartes jugades pel rival de la dreta \\
+    3 & Historial Company & Cartes jugades pel company (2v2) \\
+    4 & Historial Rival 2 & Cartes jugades pel segon rival (2v2) \\
+    5 & Senyes company    & Cartes revelades per les senyes del company \\
+    \bottomrule
+  \end{tabular}
+  \caption{Els sis canals del tensor de cartes \texttt{obs\_cartes}.}
+  \label{tab:canals-cartes}
+\end{table}
+
+Els índexs de canal 1–4 s'assignen de manera relativa al jugador actual: l'offset
+$k$ correspon al jugador $(id + k) \bmod n$, de manera que la mateixa estructura de
+tensor és vàlida per a qualsevol posició de la taula i per a les modalitats 2v2 i 1v1.
+
+\subsection*{Vector de context (24 dimensions)}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{clll}
+    \toprule
+    Índex(os) & Significat & Rang & Codificació \\
+    \midrule
+    0   & Puntuació equip propi    & $[0,1]$ & $p_{\text{propi}} / 24$ \\
+    1   & Puntuació equip rival    & $[0,1]$ & $p_{\text{rival}} / 24$ \\
+    2   & Nivell aposta de Truc    & $[0,1]$ & $\text{level}_{\text{truc}} / 24$ \\
+    3   & Nivell aposta d'Envit    & $[0,1]$ & $\text{level}_{\text{envit}} / 24$ \\
+    4   & Fase del torn            & $\{0,1\}$ & 0 = senyes, 1 = apostes/joc \\
+    5   & Ronda actual             & $[0,1]$ & $\text{ronda} / \text{cartes\_jugador}$ \\
+    6–9 & Qui és \emph{mà}         & $\{0,1\}^4$ & One-hot relatiu a l'agent \\
+    10–13 & Qui ha cantat Truc     & $\{0,1\}^4$ & One-hot relatiu; 0 si no s'ha cantat \\
+    14–16 & Qui ha cantat Envit    & $\{0,1\}^3$ & One-hot relatiu; 0 si no s'ha cantat \\
+    17  & Rondes guanyades (propi) & $[0,1]$ & $r_{\text{propi}} / 3$ \\
+    18  & Rondes guanyades (rival) & $[0,1]$ & $r_{\text{rival}} / 3$ \\
+    19  & Guanyador ronda 1        & $\{-1,0,1\}$ & $+1$ = propi, $-1$ = rival, $0$ = empat \\
+    20  & Guanyador ronda 2        & $\{-1,0,1\}$ & $+1$ = propi, $-1$ = rival, $0$ = empat \\
+    21  & Envit acceptat           & $\{0,1\}$ & Binari \\
+    22  & Truc pendent             & $\{0,1\}$ & 1 si \texttt{TRUC\_PENDING} \\
+    23  & Envit pendent            & $\{0,1\}$ & 1 si \texttt{ENVIT\_PENDING} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Les 24 dimensions del vector de context \texttt{obs\_context}.}
+  \label{tab:context-obs}
+\end{table}
+
+Totes les variables s'expressen de manera relativa a la perspectiva de l'agent
+actual. Això fa que el tensor sigui invariant a la posició de la taula: no cal
+cap transformació addicional per canviar de jugador.
+
+Aquest vector de 240~dimensions és l'entrada de la xarxa de l'agent. L'arquitectura
+concreta de l'extractor de característiques que el processa (en particular la
+comparació entre un \acf{MLP} pla i un extractor convolucional que respecta
+l'estructura $6 \times 4 \times 9$ del tensor de cartes) es tracta al
+capítol~\ref{cap:metodologia}.
+
+\section{Espai d'accions i màscara}
+\label{sec:accions-entorn}
+
+L'espai d'accions conté 19 accions discreta, definides al capítol~\ref{cap:joc}. No
+totes elles són legals en tot moment: si hi ha un Truc pendent, l'agent només pot
+respondre (vull, fora o contra); si s'estan jugant cartes no pot apostar si ja ha
+apostat abans en la mateixa mà, etc.
+
+El mètode \texttt{\_get\_legal\_actions()} retorna un \texttt{OrderedDict} amb les
+accions vàlides en el pas actual. En els wrappers Gymnasium, aquest conjunt
+s'emmagatzema a \texttt{self.\_legal\_actions} i s'usa de dues maneres:
+
+\begin{itemize}
+  \item \textbf{Fallback d'acció il·legal}: si el model prediu una acció fora del
+        conjunt legal, \texttt{TrucGymEnv.step()} la substitueix per la primera
+        acció legal (\texttt{legal\_actions[0]}). Això garanteix que l'entorn mai
+        no genera errors per accions invàlides durant les primeres fases d'entrenament,
+        quan el model és quasi aleatori.
+  \item \textbf{Màscara explícita}: en algoritmes que ho suporten (com el \ac{PPO}
+        amb màscares de \ac{SB3}), es pot passar la llista de booleà directament
+        al model per forçar que la distribució de política sigui zero en accions
+        il·legals.
+\end{itemize}
+
+En jocs amb apostes encadenades com el Truc, la màscara és especialment important:
+sense ella, l'agent podria intentar re-apostar quan ja no és possible, o respondre
+a una aposta que ja ha estat resolta. La separació entre les accions definides al
+motor i les legals en cada pas permet que el motor mantingui la lògica de negoci
+sense barrejar-la amb la política de l'agent.
+
+\section{Reward shaping}
+\label{sec:reward}
+
+En una partida fins a 24~punts, la recompensa final pot trigar centenars de passos
+a arribar. Sense senyals intermèdies, l'agent sabria si ha guanyat o perdut però no
+podria atribuir el resultat a cap acció concreta: el problema d'assignació de crèdit
+fa que aprendre a gestionar l'envit o a forçar el truc sigui pràcticament impossible
+en condicions de recompensa escassa. La solució és el \emph{reward shaping}.
+
+\subsection*{Recompensa terminal}
+
+\texttt{get\_payoffs()} retorna la recompensa final quan la partida (o la mà, en el
+cas de \texttt{TrucEnvMa}) acaba:
+
+\begin{itemize}
+  \item \textbf{\texttt{TrucEnv} (partida completa)}: $+1{,}0$ per a l'equip
+        guanyador, $-1{,}0$ per al perdedor.
+  \item \textbf{\texttt{TrucEnvMa} (mà individual)}: $\pm\,\text{punts}/24$,
+        on \emph{punts} són els punts de la mà (Truc + Envit). Normalitzar per~24
+        manté la recompensa a l'escala de la partida completa.
+\end{itemize}
+
+\subsection*{Recompenses intermèdies}
+
+El motor emmagatzema les recompenses intermèdies al camp
+\texttt{reward\_intermedis} de cada transició. Atès que RLCard posa per
+disseny recompensa zero a totes les transicions intermèdies, la funció
+\texttt{reorganize\_amb\_rewards} postprocessa les trajectòries un cop
+acabat l'episodi: per a cada transició extreu el camp \texttt{reward\_intermedis}
+del \texttt{raw\_obs} i substitueix el zero pel valor acumulat de l'equip,
+deixant intacte el \emph{payoff} final.
+
+Als wrappers Gymnasium, \texttt{\_reward\_from\_raw()} extreu directament el reward
+intermedi en cada crida a \texttt{step()} i l'amplifica per un factor~5:
+
+\begin{equation}
+  r_t = \texttt{reward\_intermedis}[\text{equip}] \times 5{,}0
+  \label{eq:reward-gym}
+\end{equation}
+
+El factor~5 equilibra l'escala entre els senyals intermedis (ordre de~0.1--0.5) i
+la recompensa terminal (±1.0), donant suficient pes al feedback immediat sense
+eclipsar l'objectiu final.
+
+Les recompenses intermèdies que emet el motor es desglossen de la manera següent:
+
+\begin{itemize}
+  \item \textbf{Guanyar una ronda}: $+0{,}40 \times w_r$ per al guanyador i
+        $-0{,}20 \times w_r$ per al perdedor, on $w_r$ és un pes decreixent
+        per ronda ($w_1=2{,}0$, $w_2=1{,}0$, $w_3=0{,}5$) que reflecteix que
+        les primeres rondes són més determinants. Si perdre la ronda implica
+        perdre la mà, la penalització s'amplifica per un factor~$1{,}5$.
+
+  \item \textbf{Envit acceptat}: recompensa proporcional als punts en joc per
+        a l'equip que matemàticament guanya l'envit.
+
+  \item \textbf{Envit rebutjat (\texttt{fora\_envit})}: $+1{,}5\times$ per a
+        l'equip que força el rebuig, $-1{,}0\times$ per al que es retira.
+
+  \item \textbf{Truc rebutjat (\texttt{fora\_truc} en resposta)}: $+1{,}5\times$
+        per a l'agressiu, $-1{,}0\times$ per al retirat.
+
+  \item \textbf{Retirada voluntària (\texttt{fora\_truc} sense resposta pendent)}:
+        $+1{,}0\times$ per a l'oponent, $-1{,}2\times$ per al que fuig, per
+        penalitzar les fugides injustificades.
+
+  \item \textbf{Guanyar la mà (truc net)}: $\pm 1{,}0\times$ el factor base.
+\end{itemize}
+
+La variant per mans (\texttt{TrucGameMa}) simplifica el sistema: acumula un únic
+reward net al final de cada mà com $\pm\,\text{punts}/24$, sense senyals de ronda
+individuals. Això afavoreix un aprenentatge més estable per a la fase de
+\emph{curriculum learning} on cada episodi és una única mà.
