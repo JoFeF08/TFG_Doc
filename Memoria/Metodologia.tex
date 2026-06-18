@@ -1,0 +1,156 @@
+%!TeX root=MemoriaTFG.tex
+
+\chapter{Metodologia d'Entrenament}
+\label{cap:metodologia}
+
+Aquest capítol descriu el procés experimental que ha portat des d'agents incapaços de
+batre una heurística senzilla fins a un agent competitiu. L'enfocament és incremental:
+cada fase planteja una hipòtesi concreta, dissenya un experiment per validar-la,
+n'analitza els resultats i pren una decisió que condiciona la fase següent. Aquesta
+estructura (\emph{hipòtesi $\rightarrow$ disseny $\rightarrow$ resultats $\rightarrow$
+decisió}) permet aïllar l'efecte de cada tècnica i justificar per què el treball avança
+en una direcció i no en una altra.
+
+Les fases s'agrupen en tres blocs, separats per dos punts de control (\emph{checkpoints})
+que tanquen un grup d'experiments i fixen quins models continuen:
+
+\begin{itemize}
+  \item \textbf{Bloc 1} (secció~\ref{sec:bloc1}): línia base comparativa i
+        \emph{curriculum learning} (Fases 1--2, Checkpoint~1).
+  \item \textbf{Bloc 2} (secció~\ref{sec:bloc2}): representació de l'estat i memòria
+        (Fases 3, 3.5 i 4, Checkpoint~2).
+  \item \textbf{Bloc 3} (secció~\ref{sec:bloc3}): robustesa i aproximació a l'equilibri
+        (Fases 5--6).
+\end{itemize}
+
+\section{Marc metodològic comú}
+\label{sec:marc-metodologic}
+
+Totes les fases comparteixen el mateix protocol d'avaluació, la mateixa mètrica i el
+mateix oponent de referència. Aquesta secció els defineix una vegada per no repetir-los
+a cada fase.
+
+\subsection*{Protocol d'avaluació}
+
+El rendiment d'un agent es mesura amb la funció \texttt{evaluar\_agent()}, que juga un
+nombre fix de partides senceres contra dos oponents de referència: 100~partides contra
+un agent aleatori (\texttt{RandomAgent}) i 100~partides contra l'agent de regles
+(\texttt{AgentRegles}). Per evitar el biaix posicional (ser \emph{mà} dona un lleuger
+avantatge), l'agent alterna la seva posició (jugador~0 i jugador~1) en partides
+consecutives. L'avaluació es fa cada 500\,000~passos d'entrenament i sempre sobre
+\textbf{partides senceres}, encara que l'agent s'estigui entrenant sobre mans
+individuals; així es mesura sempre la competència real al joc complet.
+
+\subsection*{Mètrica de rendiment}
+
+S'ha triat el \emph{win-rate} (percentatge de partides guanyades) com a base de la
+mètrica, en lloc de la recompensa acumulada, per tres motius: és l'objectiu últim del joc,
+és directament interpretable i és comparable entre algorismes diferents. Aquest darrer
+punt és el més important. La recompensa d'entrenament de PPO i la de DQN no són
+directament comparables perquè cada algorisme optimitza una quantitat interna distinta:
+PPO maximitza un objectiu de gradient de política sobre l'avantatge estimada, mentre que
+DQN minimitza l'error de diferència temporal de la seva funció~$Q$ (secció~\ref{sec:dqn} i
+secció~\ref{sec:ppo}). A més, els dos algorismes usen factors de descompte diferents
+($\gamma = 0{,}995$ per a PPO i $\gamma = 0{,}99$ per a DQN), de manera que ni tan sols el
+retorn acumulat es mesura a la mateixa escala. El win-rate, en canvi, és una mètrica
+\emph{externa}: es calcula jugant partides i comptant victòries, amb independència de com
+s'ha entrenat l'agent, i per això permet comparar qualsevol parella d'algorismes en
+igualtat de condicions. La mètrica combina el win-rate contra dos oponents complementaris:
+
+\begin{equation}
+  \text{metric} = 0{,}25 \cdot \text{wr}_{\text{random}} + 0{,}75 \cdot \text{wr}_{\text{regles}}
+  \label{eq:metric}
+\end{equation}
+
+Cada terme compleix una funció diferent. L'\texttt{AgentRegles} (pes 0{,}75) és l'oponent
+\textbf{discriminant}: batre una heurística coherent requereix estratègia real, de manera
+que aquest terme és el que captura la qualitat de l'agent. El \texttt{RandomAgent}
+(pes 0{,}25) actua com a \textbf{xarxa de seguretat}: guanyar-li és trivial, però un agent
+que no hi guanyi de manera clara revela un col·lapse de la política (per exemple, una
+política degenerada que repeteix sempre la mateixa acció). Aquest terme detecta
+degeneracions que el win-rate contra regles, per si sol, podria emmascarar. El pes
+dominant recau, doncs, sobre l'oponent que de debò discrimina l'habilitat, mentre que el
+terme aleatori aporta un sòl d'estabilitat. Les fases avançades (5 i 6) introdueixen
+mètriques addicionals de robustesa i explotabilitat, que es defineixen al bloc
+corresponent.
+
+\subsection*{L'oponent de referència: l'agent de regles}
+
+L'\texttt{AgentRegles} (\texttt{RL/models/model\_propi/agent\_regles.py}) és un agent
+heurístic codificat a mà que serveix alhora com a oponent d'entrenament i d'avaluació.
+No té cap xarxa neuronal: la seva política prové d'heurístiques amb llindars adaptatius
+sobre la força de la mà, els punts d'envit i el marcador.
+
+\paragraph{La variant equilibrada i els seus paràmetres.} El comportament base de l'agent
+(la variant \emph{equilibrada}) està governat per quatre paràmetres, cadascun amb un valor
+neutre que es pren com a referència. Cada paràmetre modula un aspecte de la política:
+
+\begin{itemize}
+  \item \texttt{envit\_agressio} (neutre 1{,}0): escala els llindars de punts per acceptar
+        o apujar l'envit. Amb el valor neutre, l'agent apuja l'envit a partir de
+        30~punts de mà i l'accepta a partir de 25; el paràmetre divideix aquests
+        llindars, de manera que un valor més alt els abaixa (accepta amb mans més febles)
+        i un de més baix els apuja (més conservador). Els llindars també s'ajusten segons
+        el marcador: si el rival és a punt de guanyar la partida, l'agent es torna
+        conservador; si l'envit pot donar-li la partida, es torna agressiu.
+  \item \texttt{truc\_agressio} (neutre 1{,}0): probabilitat d'apostar el truc en
+        situacions favorables (per exemple, havent guanyat una ronda i amb una carta
+        alta). Amb 1{,}0 aposta sempre en aquests casos; valors menors el fan dubtar i
+        valors majors hi afegeixen farols addicionals.
+  \item \texttt{farol\_prob} (neutre 0{,}12): probabilitat d'apostar el truc \emph{sense}
+        una mà forta, és a dir, de fer farol.
+  \item \texttt{resposta\_truc} (neutre 1{,}0): disposició a acceptar un truc cantat pel
+        rival. Ajusta el llindar de força exigit per acceptar: valors superiors a~1
+        accepten amb menys mà, valors inferiors es retiren més sovint.
+\end{itemize}
+
+\paragraph{Estocasticitat.} La característica clau de l'agent és que és
+\textbf{estocàstic}: sobre les decisions deterministes anteriors hi injecta soroll
+aleatori ($\pm2$ punts als llindars d'envit, $\pm5$ al llindar de força del truc, i
+decisions probabilístiques a les zones grises de cada llindar). Aquesta estocasticitat és
+deliberada i essencial. Un oponent purament determinista seria fàcilment explotable:
+l'agent d'\ac{AR} aprendria a predir-ne les respostes fixes i el batria de manera
+artificial, inflant la mètrica sense reflectir cap habilitat real (\emph{reward hacking}
+contra un oponent fix). El soroll obliga l'agent entrenat a generalitzar i fa de
+l'\texttt{AgentRegles} una barrera molt més exigent del que sembla.
+
+\paragraph{El pool de variants.} A partir de la Fase~4, els quatre paràmetres es
+modifiquen per generar sis \textbf{variants} amb estils de joc contrastats, que formen un
+\emph{pool} d'oponents (taula~\ref{tab:pool-variants}): des de la conservadora (poc
+agressiva i gairebé sense farol) fins a la farolera (màxima probabilitat de farol),
+passant per especialistes en truc o en envit. La variant equilibrada hi figura amb els
+valors neutres descrits més amunt.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{lcccc}
+    \toprule
+    Variant & \texttt{truc\_agressio} & \texttt{envit\_agressio} & \texttt{farol\_prob} & \texttt{resposta\_truc} \\
+    \midrule
+    Equilibrat  & 1{,}0 & 1{,}0 & 0{,}12 & 1{,}0 \\
+    Conservador & 0{,}5 & 0{,}5 & 0{,}02 & 0{,}6 \\
+    Agressiu    & 1{,}8 & 1{,}8 & 0{,}30 & 1{,}5 \\
+    Truc-bot    & 2{,}0 & 0{,}4 & 0{,}15 & 1{,}2 \\
+    Envit-bot   & 0{,}4 & 2{,}0 & 0{,}05 & 0{,}7 \\
+    Faroler     & 1{,}3 & 1{,}3 & 0{,}40 & 1{,}3 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Les sis variants de l'\texttt{AgentRegles} que formen el \emph{pool}
+           d'oponents (Fases 4--6). La variant equilibrada (primera fila) reprodueix el
+           comportament per defecte usat a les fases 1--3.}
+  \label{tab:pool-variants}
+\end{table}
+
+\subsection*{Convencions comunes}
+
+Llevat que s'indiqui el contrari, tots els agents comparteixen l'arquitectura base de
+xarxa (\ac{MLP} de dues capes ocultes de 256~unitats amb ReLU) i s'avaluen sobre
+l'observació de 240~dimensions descrita al capítol~\ref{cap:entorns}. El pressupost
+d'entrenament s'expressa en \emph{timesteps} (passos d'interacció amb l'entorn). Els
+hiperparàmetres complets de cada algorisme i fase es recullen a
+l'annex~\ref{ann:hiperparametres}; al cos del capítol només se'n destaquen els rellevants
+per a cada decisió.
+
+\input{MetodologiaBloc1}
+%\input{MetodologiaBloc2}
+%\input{MetodologiaBloc3}

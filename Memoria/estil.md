@@ -47,6 +47,39 @@ Quan cal afegir un acrònim nou: inserir la línia `\acro{}` a `Acronims.tex` en
 - Per a escales d'apostes o informació tabular, usar `tabular` amb el paquet `booktabs` (`\toprule`, `\midrule`, `\bottomrule`).
 - No incrustar Mermaid directament: exportar com a PNG/PDF i usar `\includegraphics`, o bé TikZ natiu.
 
+## Estructura de les fases (capítol de Metodologia)
+
+El capítol de Metodologia s'organitza en blocs (separats pels *checkpoints*) i, dins de
+cada bloc, una `\subsection` per fase. **Cada fase segueix sempre la mateixa estructura
+de quatre blocs**, marcats amb `\paragraph{}` (capçaleres en negreta):
+
+1. `\paragraph{Hipòtesi.}` — la pregunta o expectativa que motiva la fase.
+2. `\paragraph{Disseny.}` — el muntatge experimental.
+3. `\paragraph{Resultats.}` — el resultat que valida (o no) la hipòtesi.
+4. `\paragraph{Decisió.}` — què es conclou i com condiciona la fase següent (o el *checkpoint*).
+
+Aquests quatre són els **únics** `\paragraph{}` d'una fase. Els subapartats interns d'un
+bloc (sobretot del Disseny: algorismes, oponents, bucle d'entrenament, avaluació...) **no**
+es posen com a `\paragraph{}` (es veurien com a seccions paral·leles), sinó com a lead-in
+en cursiva a l'inici del paràgraf:
+
+```latex
+\emph{Oponents.} Cada agent s'entrena contra...
+\emph{Bucle d'entrenament.} El bucle...
+```
+
+Així la negreta marca els quatre blocs del mètode i la cursiva, els subapartats que en
+pengen. Ordre recomanat dins del Disseny: *què* es compara → *contra qui* i *com*
+s'entrena → *com* s'avalua.
+
+### Origen de les dades
+
+Els valors numèrics dels resultats surten dels **notebooks executats**
+(`TFG_Doc/notebooks/<fase>/comparacio_fase<N>.ipynb`), que són la font autoritzada; els
+fitxers `.md` poden tenir valors aproximats o de plantilla. La `\paragraph{Resultats.}` de
+cada fase conté només el resultat que justifica la decisió; la síntesi transversal entre
+fases i l'anàlisi del model final es reserven per al capítol de Resultats.
+
 ## Portada
 
 - Tutor principal: `\tutor{Dr. Francesc Xavier Gayà Morey}`
