@@ -22,7 +22,8 @@ Quan cal afegir un acrònim nou: inserir la línia `\acro{}` a `Acronims.tex` en
 | MDP | `\acf{MDP}`, MarcTeoric.tex:31 |
 | DRQN | `\acf{DRQN}`, MarcTeoric.tex:486 |
 | GRU | `\acf{GRU}`, MarcTeoric.tex:487 |
-| LSTM | `\acs{LSTM}` → primer `\ac` pendent |
+| CNN | `\acf{CNN}`, MetodologiaBloc2.tex (Fase 3) |
+| LSTM | `\acf{LSTM}`, MetodologiaBloc2.tex (Fase 4) |
 | MVC | `\acf{MVC}`, JocSimulacio.tex:9 |
 | TFG | `\ac{TFG}`, Introduccio.tex:30 |
 
@@ -73,6 +74,13 @@ en cursiva a l'inici del paràgraf:
 Així la negreta marca els quatre blocs del mètode i la cursiva, els subapartats que en
 pengen. Ordre recomanat dins del Disseny: *què* es compara → *contra qui* i *com*
 s'entrena → *com* s'avalua.
+
+Quan dues fases molt acoblades comparteixen tema (com la Fase 3 i la Fase 3.5, totes dues
+sobre el *feature extractor* COS), es poden agrupar en una sola `\subsection` amb una
+`\subsubsection` per pregunta de recerca, mantenint dins de cada `\subsubsection` els quatre
+blocs `\paragraph{}` habituals. La numeració fins a `\subsubsection` requereix pujar la
+profunditat al preàmbul de `MemoriaTFG.tex` (`\maxsecnumdepth{subsubsection}` i
+`\settocdepth{subsubsection}`), perquè la classe la limita a `subsection` per defecte.
 
 ### Origen de les dades
 

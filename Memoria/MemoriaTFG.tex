@@ -4,8 +4,26 @@
 \usepackage[section]{placeins}
 \usepackage{float}
 \raggedbottom
+
+% Permet numerar i indexar fins a subsubsection (la classe ho limita a subsection).
+% Només afecta subsubseccions NO estrellades; les \subsubsection*{} del marc teòric no canvien.
+\maxsecnumdepth{subsubsection}
+\setsecnumdepth{subsubsection}
+\maxtocdepth{subsubsection}
+\settocdepth{subsubsection}
 \usepackage{amsmath,mathtools}
 \usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny,
+  xleftmargin=1.5em,
+  framexleftmargin=1.5em,
+}
 \usepackage[printonlyused]{acronym}
 \input{DefinicionsAcronims}
 \usepackage{siunitx}
@@ -58,7 +76,8 @@
 \include{Introduccio}
 \include{MarcTeoric}
 \include{JocSimulacio}
-%\include{Metodologia}
+\include{EntornsRL}
+\include{Metodologia}
 %\include{ResultatsConclusions}
 \include{Conclusions}
 
