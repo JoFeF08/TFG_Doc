@@ -49,9 +49,11 @@ Quan cal afegir un acrònim nou: inserir la línia `\acro{}` a `Acronims.tex` en
 
 ## Estructura de les fases (capítol de Metodologia)
 
-El capítol de Metodologia s'organitza en blocs (separats pels *checkpoints*) i, dins de
-cada bloc, una `\subsection` per fase. **Cada fase segueix sempre la mateixa estructura
-de quatre blocs**, marcats amb `\paragraph{}` (capçaleres en negreta):
+El capítol de Metodologia s'organitza en blocs (`\section`). Dins de cada bloc hi ha una
+`\subsection` per fase i, al final, una `\subsection` per al *checkpoint* que el tanca (la
+selecció de models que continuen). El *checkpoint* no segueix l'estructura de quatre blocs;
+és text seguit que justifica la decisió. **Cada fase, en canvi, segueix sempre la mateixa
+estructura de quatre blocs**, marcats amb `\paragraph{}` (capçaleres en negreta):
 
 1. `\paragraph{Hipòtesi.}` — la pregunta o expectativa que motiva la fase.
 2. `\paragraph{Disseny.}` — el muntatge experimental.
