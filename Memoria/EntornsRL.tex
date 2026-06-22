@@ -73,7 +73,8 @@ A més d'aquests dos parells, hi ha dues variants especialitzades:
         l'episodi agrupa $N$ mans consecutives contra el mateix oponent (per defecte
         $N=5$). L'oponent se samplea del \emph{pool} a cada \texttt{reset()}, cosa
         que obliga l'agent a acumular context entre mans i potencialment detectar els
-        patrons de l'oponent. S'ha usat a la Fase~4 (memòria cross-mans, \ac{DRQN}).
+        patrons de l'oponent. S'ha usat a la Fase~4 (memòria cross-mans amb
+        \texttt{RecurrentPPO}).
 
   \item \texttt{parallel\_env\_ma.py}: procés fill (\texttt{worker}) que executa
         \texttt{TrucEnvMa} en un procés separat via \texttt{multiprocessing} i

@@ -492,25 +492,28 @@ d'entropia $\mathcal{H}[\pi]$ per mantenir l'exploració:
   + c_2\,\mathcal{H}[\pi].
 \]
 
-\subsection{Deep Recurrent Q-Learning}
-\label{sec:drqn}
+\subsection{Recurrència i memòria: RecurrentPPO}
+\label{sec:recurrencia}
 
-\ac{DQN} assumeix que l'observació $o_t$ és una representació suficient de
-l'estat per prendre decisions òptimes. En un \ac{POMDP} això no és cert: sense
-memòria de les observacions passades, l'agent pot prendre decisions subòptimes
-quan l'estat ocult és rellevant.
+Els mètodes vistos fins ara (\ac{DQN}, \ac{PPO}) assumeixen que l'observació $o_t$ és una
+representació suficient de l'estat per prendre decisions òptimes. En un \ac{POMDP} com el
+Truc això no és cert: sense memòria de les observacions passades, l'agent pot prendre
+decisions subòptimes quan l'estat ocult és rellevant.
 
-\acf{DRQN}~\cite{hausknecht2015drqn} proposa substituir la primera capa densa
-de \ac{DQN} per una \acf{GRU} o \acs{LSTM} que manté un estat ocult
-$(h_t, c_t)$ propagat a través dels passos de temps. Així, l'aproximació de la
-funció de valor depèn no sols de $o_t$ sinó de tota la seqüència
-d'observacions passades, el que equival a aproximar la funció de valor sobre la
-\emph{creença} (distribució de probabilitat sobre estats ocults).
+Per dotar l'agent de memòria s'afegeix una capa recurrent (com la \acf{GRU} o la
+\acs{LSTM}) que manté un estat ocult $(h_t, c_t)$ propagat a través dels passos de temps.
+Així, la política ja no depèn només de $o_t$ sinó de tota la seqüència d'observacions
+passades, el que equival a actuar sobre la \emph{creença} (distribució de probabilitat
+sobre estats ocults). Aplicada al \ac{PPO}, aquesta extensió és el \texttt{RecurrentPPO}. 
+
+La idea d'afegir recurrència per a tractar un \ac{POMDP}
+prové del \acf{DRQN}~\cite{hausknecht2015drqn}, que la va introduir sobre el \ac{DQN}; aquí
+se n'aplica el mateix principi al \ac{PPO}.
 
 L'entrenament propaga els gradients a través del temps (BPTT,
-\emph{Backpropagation Through Time}) sobre segments de trajectòria de longitud
-$L$. La pèrdua s'acumula als últims $L$ passos de la seqüència per evitar que
-els gradients s'extingeixin en contextos molt llargs.
+\emph{Backpropagation Through Time}) sobre segments de trajectòria de longitud $L$. La
+pèrdua s'acumula als últims $L$ passos de la seqüència per evitar que els gradients
+s'extingeixin en contextos molt llargs.
 
 \subsection{Neural Fictitious Self-Play}
 \label{sec:nfsp}
