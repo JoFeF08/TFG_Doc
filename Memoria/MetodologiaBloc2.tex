@@ -12,13 +12,14 @@ s'adopta per a desplegament.
 \subsection{Fase 3: el feature extractor COS}
 \label{sec:fase3}
 
-La Fase~3 estudia un \emph{feature extractor} convolucional propi, anomenat COS
-(\texttt{CosMultiInput}), com a alternativa a l'extractor pla per defecte de \ac{SB3}.
-L'estudi es divideix en dues preguntes acoblades, tractades en dues subsubseccions: si
-l'\textbf{arquitectura} convolucional aporta valor per si sola (Q1,
-secció~\ref{sec:fase3-arq}) i, en cas que la representació importi, si
-\textbf{inicialitzar-la} amb coneixement previ del joc desbloqueja un rendiment superior
-(Q2, secció~\ref{sec:fase3-init}).
+\begin{sloppypar}
+La Fase~3 estudia \texttt{CosMultiInput}, un \emph{feature extractor} convolucional
+propi, com a alternativa a l'extractor pla per defecte de \ac{SB3}.
+L'estudi respon dues preguntes acoblades: si l'\textbf{arquitectura} convolucional
+aporta valor per si sola (Q1, secció~\ref{sec:fase3-arq}) i si
+\textbf{inicialitzar-la} amb coneixement previ del joc desbloqueja un rendiment
+superior (Q2, secció~\ref{sec:fase3-init}).
+\end{sloppypar}
 
 \subsubsection{Arquitectura: CNN vs MLP}
 \label{sec:fase3-arq}
@@ -42,9 +43,9 @@ de 24~dimensions (taula~\ref{tab:context-obs}) a~32. Les dues sortides es concat
 sortida coincideix amb l'amplada de la primera capa oculta de la política
 (\texttt{net\_arch=[256,256]}), de manera que \texttt{CosMultiInput} substitueix
 l'extractor per defecte de \ac{SB3} (\texttt{CombinedExtractor}, que simplement aplana
-l'observació) sense cap altre canvi. L'adaptador \texttt{CosMultiInputSB3}
-(\texttt{RL/models/sb3/sb3\_features\_extractor.py}) fa de pont entre el vector pla i les
-dues branques.
+l'observació) sense cap altre canvi. L'adaptador \texttt{CosMultiInputSB3} (\texttt{RL/%
+\allowbreak{}models/\allowbreak{}sb3/\allowbreak{}sb3\_\allowbreak{}features\_%
+\allowbreak{}extractor.py}) fa de pont entre el vector pla i les dues branques.
 
 \begin{figure}[H]
   \centering
@@ -293,10 +294,16 @@ estable per a la fase següent.
 \paragraph{Hipòtesi (Q3).} Totes les fases anteriors entrenen contra un oponent fix i amb
 un agent sense estat intern. La Fase~4 introdueix dues variables: una memòria seqüencial
 (\acf{LSTM}) que manté estat entre mans, i un \emph{pool} de sis variants d'oponent
-(taula~\ref{tab:pool-variants}). La hipòtesi és que l'\ac{LSTM}, entrenada en sessions de
-\(N=5\) mans consecutives contra el mateix oponent (entorn \texttt{TrucGymEnvSessio}),
-aprendrà a detectar el patró de l'oponent i s'hi adaptarà, amb un win-rate creixent dins
-la sessió.
+(taula~\ref{tab:pool-variants}). Se'n deriven tres hipòtesis concretes:
+\begin{itemize}
+  \item \textbf{H1}: L'\ac{LSTM} millora el rendiment global respecte a un agent sense
+        memòria entrenat amb les mateixes condicions.
+  \item \textbf{H2}: L'agent amb \ac{LSTM} mostra adaptació progressiva dins la sessió:
+        el win-rate creix de la mà~1 a la mà~5 a mesura que l'agent infereix el patró de
+        l'oponent.
+  \item \textbf{H3}: El pool de sis variants no perjudica significativament la convergència
+        d'un agent sense memòria (F4-ablació comparable a les línies base de la Fase~3.5).
+\end{itemize}
 
 \paragraph{Disseny.}
 
@@ -316,10 +323,10 @@ sessió es mostreja un oponent nou del pool.
 \emph{L'arquitectura amb memòria.} La cadena de processament és
 obs(240)~$\rightarrow$~COS congelat(256)~$\rightarrow$~\ac{LSTM}(256)~$\rightarrow$~\ac{MLP}
 lleuger~$\rightarrow$~caps de política i valor. S'usa \texttt{RecurrentPPO} (de
-\texttt{sb3\_contrib}) amb \emph{retropropagació en el temps truncada} sobre seqüències, on
-el \texttt{batch\_size} es mesura en seqüències i no en transicions individuals. No s'usa
-\acs{DRQN} (l'anàleg recurrent del DQN) perquè requeriria un \emph{replay buffer} seqüencial
-no disponible a \ac{SB3}.
+\texttt{sb3\_contrib}) amb \emph{retropropagació en el temps truncada}
+(secció~\ref{sec:recurrencia}) sobre seqüències, on el \texttt{batch\_size} es mesura en seqüències
+i no en transicions individuals. No s'usa \acs{DRQN} (l'anàleg basat en la funció de valor)
+perquè requeriria un \emph{replay buffer} seqüencial no disponible a \ac{SB3}.
 
 \emph{Pressupost i avaluació.} Es comparen dos runs nous amb les línies base de la Fase~3.5:
 \textbf{F4-ablació} (PPO + COS congelat + pool, sense memòria) i \textbf{F4-complet}
@@ -331,26 +338,37 @@ posició dins la sessió} (de la mà~1 a la~5) per detectar si l'agent millora a
 coneix l'oponent.
 
 \paragraph{Resultats.} Cap de les tres hipòtesis es valida plenament
-(taula~\ref{tab:fase4}):
-\begin{itemize}
-  \item \textbf{H1 falla}: l'\ac{LSTM} no millora el rendiment global. F4-complet (82{,}0\%)
-        queda 4~punts \emph{per sota} de F4-ablació (86{,}0\%), amb un cost computacional
-        46$\times$ superior (15{,}2~h vs 0{,}33~h).
-  \item \textbf{H2 falla}: no hi ha adaptació clara dins la sessió. La corba de win-rate per
-        posició és sorollosa i no monòtona
-        (\([77{,}5;\,73{,}2;\,80{,}7;\,71{,}1;\,78{,}9]\), \(\Delta = +1{,}4\)~punts) i el
-        mateix patró apareix a la versió sense memòria, cosa que indica un artefacte de la
-        mida de mostra (\(\sim\)56~sessions) i no aprenentatge adaptatiu real.
-  \item \textbf{H3 parcial}: F4-ablació queda 3{,}5~punts sota PPO frozen, just al límit del
-        criteri (\(\pm3\)~punts); el pool dificulta lleugerament la convergència sense
-        memòria.
-\end{itemize}
-La causa principal del fracàs de l'\ac{LSTM} és el \textbf{desajust entre entrenament i
-avaluació}: s'entrena sobre sessions de 5~mans (\(\sim\)50~passos), però s'avalua sobre
-sessions de 5~partides senceres (\(\sim\)500~passos), un context molt més llarg que la xarxa
-no ha vist mai durant l'entrenament. S'hi sumen el pressupost reduït (12M vs 24M de les
-línies base) i les sessions d'entrenament massa curtes perquè la retropropagació propagui
-senyals d'adaptació.
+(taula~\ref{tab:fase4}). Les figures~\ref{fig:fase4-corbes} i~\ref{fig:fase4-barplot}
+mostren l'evolució i els pics de \texttt{metric}; la figura~\ref{fig:fase4-adaptacio}
+detalla el win-rate per posició dins la sessió, clau per a H2.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.82\textwidth]{figures/fase4/fase4_corbes.pdf}
+  \caption{Evolució de la \texttt{metric} al llarg de l'entrenament per als quatre runs de
+           la Fase~4, tallats a 12M passos. Línies discontínues: línies base de la Fase~3.5
+           (sense pool); línies sòlides: runs amb pool; gruix addicional: model amb
+           \ac{LSTM}. La línia puntejada gris marca el 85\%.}
+  \label{fig:fase4-corbes}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fase4/fase4_barplot.pdf}
+  \caption{Pic de \texttt{metric} per a cada run, tots tallats al pressupost comú de 12M
+           passos. DQN~frozen assoleix 87{,}8\% dins el pressupost; el seu pic global és
+           91{,}2\% a 23M passos.}
+  \label{fig:fase4-barplot}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fase4/fase4_adaptacio.pdf}
+  \caption{Win-rate per posició dins la sessió (mà~1 a mà~5) per als dos runs de la
+           Fase~4 (mitjana de les cinc darreres avaluacions). El $\Delta$ indica la
+           diferència entre la mà~5 i la mà~1. La línia puntejada marca el 50\%.}
+  \label{fig:fase4-adaptacio}
+\end{figure}
 
 \begin{table}[H]
   \centering
@@ -358,10 +376,10 @@ senyals d'adaptació.
     \toprule
     Run & Memòria & Pic \texttt{metric} (12M) & Temps \\
     \midrule
-    DQN frozen (F3.5) & No        & 87{,}75\% & — \\
-    PPO frozen (F3.5) & No        & 89{,}5\%  & 0{,}33~h \\
-    F4-ablació        & No        & 86{,}0\%  & 0{,}33~h \\
-    F4-complet        & \ac{LSTM} 256 & 82{,}0\%  & 15{,}2~h \\
+    DQN frozen (F3.5) & No            & 87{,}8\% & — \\
+    PPO frozen (F3.5) & No            & 89{,}5\% & 0{,}33~h \\
+    F4-ablació        & No            & 86{,}0\% & 0{,}33~h \\
+    F4-complet        & \ac{LSTM} 256 & 82{,}0\% & 15{,}2~h \\
     \bottomrule
   \end{tabular}
   \caption{Resultats de la Fase~4 (pressupost igualat a 12M passos). DQN frozen mostra el
@@ -369,9 +387,45 @@ senyals d'adaptació.
   \label{tab:fase4}
 \end{table}
 
-\paragraph{Decisió.} L'\ac{LSTM} no justifica el seu cost amb el disseny actual, de manera
-que la memòria queda descartada per al model final. La tria entre els candidats restants
-(F4-ablació i les línies base de la Fase~3.5) es resol al Checkpoint~2.
+\emph{H1: l'\ac{LSTM} millora el rendiment global.} \textbf{No es valida.}
+F4-complet assoleix un 82{,}0\% de \texttt{metric}, \emph{4~punts per sota} de F4-ablació
+(86{,}0\%), que entrena amb el mateix pool però sense memòria. A igual pressupost (12M
+passos), la memòria no aporta cap guany global i a més eleva el cost computacional 46$\times$
+(15{,}2~h vs 0{,}33~h).
+
+\emph{H2: adaptació progressiva dins la sessió.} \textbf{No es valida.}
+La corba de win-rate per posició (mà~1 a mà~5, figura~\ref{fig:fase4-adaptacio}) és
+sorollosa i no monòtona: $[77{,}5;\,73{,}2;\,80{,}7;\,71{,}1;\,78{,}9]$,
+$\Delta = +1{,}4$~punts. El patró no és gaire diferent del de F4-ablació (sense memòria),
+la qual cosa descarta l'aprenentatge adaptatiu i apunta a un artefacte de la mida de
+mostra (${\sim}56$~sessions per posició), insuficient per detectar tendències fiables.
+
+\emph{H3: el pool no perjudica significativament la convergència.} \textbf{Parcialment
+valida.} F4-ablació (86{,}0\%) queda 3{,}5~punts sota PPO frozen (89{,}5\%), just al
+límit del criteri $\pm3$~punts. El pool dificulta lleugerament la convergència sense
+memòria, però el delta és prou petit per no descartar la configuració.
+
+La causa subjacent del fracàs de H1 i H2 és el \textbf{desajust entre entrenament i
+avaluació}: s'entrena sobre sessions de 5~mans (${\sim}50$~passos), però s'avalua sobre
+sessions de 5~partides senceres (${\sim}500$~passos), un context deu vegades més llarg que
+la xarxa no ha vist mai. S'hi sumen el pressupost reduït (12M vs 24M de les línies base)
+i les sessions d'entrenament massa curtes perquè la retropropagació en el temps propagui
+senyals d'adaptació significatius.
+
+\paragraph{Decisió.} Els resultats revelen marges de millora concrets. El canvi més crític
+seria \textbf{alinear el context d'entrenament i d'avaluació}: substituir les sessions de
+5~mans (${\sim}50$~passos) per sessions de partides senceres (${\sim}500$~passos), de
+manera que la xarxa hagi vist durant l'entrenament el mateix horitzó temporal que a
+l'avaluació. Un \textbf{\ac{LSTM} més petit} (64--128 unitats en lloc de 256) reduiria
+el cost computacional i facilitaria la convergència; augmentar el \textbf{pressupost} fins
+als 24M passos de les línies base i allargar les \textbf{seqüències de BPTT} donarien a
+la memòria el temps i el context necessaris per propagar senyals d'adaptació reals.
+
+Malgrat aquestes millores possibles, aquest \ac{TFG} descarta la línia de recerca
+recurrent: amb H1 i H2 invalidades, H3 just al límit i un cost computacional 46$\times$
+superior, la relació cost-benefici no justifica continuar-la dins del pressupost disponible.
+La tria entre els candidats restants (F4-ablació i les línies base de la Fase~3.5) es
+resol al Checkpoint~2.
 
 \subsection{Checkpoint 2: model seleccionat}
 \label{sec:checkpoint2}
@@ -391,9 +445,7 @@ les diverses hores del DQN), que permet iterar i reentrenar amb facilitat, i un
 \textbf{rendiment competitiu} al pressupost igualat (només 3{,}5~punts sota PPO frozen).
 
 \textbf{DQN frozen} té el millor win-rate brut (91{,}2\% al pic global), però va ser entrenat
-contra un oponent fix i no s'ha provat contra el pool; per això no es tria. L'extensió natural
-seria entrenar DQN amb el pool d'oponents per combinar el seu rendiment amb la robustesa,
-però no s'ha executat per limitacions de temps. Finalment, l'\ac{LSTM} (F4-complet) queda
+contra un oponent fix i no s'ha provat contra el pool; per això no es tria. . Finalment, l'\ac{LSTM} (F4-complet) queda
 descartada: un cost 46$\times$ superior i un rendiment 4~punts inferior no compensen, i cap
 de les seves hipòtesis s'ha validat.
 
