@@ -23,9 +23,9 @@ Quan cal afegir un acrònim nou: inserir la línia `\acro{}` a `Acronims.tex` en
 | DRQN | `\acf{DRQN}`, MarcTeoric.tex:486 |
 | GRU | `\acf{GRU}`, MarcTeoric.tex:487 |
 | CNN | `\acf{CNN}`, MetodologiaBloc2.tex (Fase 3) |
-| LSTM | `\acf{LSTM}`, MetodologiaBloc2.tex (Fase 4) |
+| LSTM | `\acf{LSTM}`, MetodologiaBloc2.tex:296 (Fase 4; `\acs{LSTM}` a MarcTeoric.tex:504 no consumeix) |
 | FSP | `\acf{FSP}`, MetodologiaBloc3.tex (Bloc 3 intro) |
-| SL | `\acf{SL}`, MetodologiaBloc3.tex (Fase 6 Disseny) |
+| SL | `\acs{SL}` a MetodologiaBloc1.tex:35 (taula) i text pla a MarcTeoric.tex:580 (llegenda); usos posteriors: `\ac{SL}` |
 | MVC | `\acf{MVC}`, JocSimulacio.tex:9 |
 | TFG | `\ac{TFG}`, Introduccio.tex:30 |
 
