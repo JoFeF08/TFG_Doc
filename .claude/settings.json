@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__jupyter__overwrite_cell_source",
+      "Read(//c/Users/ferri/Documents/ProjectesCodi/TFG-truc/**)",
+      "Bash(rm -rf Memoria/figures)"
+    ]
+  }
+}
