@@ -51,9 +51,7 @@ punt és el més important. La recompensa d'entrenament de PPO i la de DQN no s�
 directament comparables perquè cada algorisme optimitza una quantitat interna distinta:
 PPO maximitza un objectiu de gradient de política sobre l'avantatge estimada, mentre que
 DQN minimitza l'error de diferència temporal de la seva funció~$Q$ (secció~\ref{sec:dqn} i
-secció~\ref{sec:ppo}). A més, els dos algorismes usen factors de descompte diferents
-($\gamma = 0{,}995$ per a PPO i $\gamma = 0{,}99$ per a DQN), de manera que ni tan sols el
-retorn acumulat es mesura a la mateixa escala. El win-rate, en canvi, és una mètrica
+secció~\ref{sec:ppo}). El win-rate, en canvi, és una mètrica
 \emph{externa}: es calcula jugant partides i comptant victòries, amb independència de com
 s'ha entrenat l'agent, i per això permet comparar qualsevol parella d'algorismes en
 igualtat de condicions. La mètrica combina el win-rate contra dos oponents complementaris:

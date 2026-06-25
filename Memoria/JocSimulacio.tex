@@ -155,12 +155,12 @@ responsabilitats independents:
         vista i consultant i modificant l'estat a través del model.
 \end{itemize}
 
-La clau del disseny és que el controlador (\texttt{controlador/controlador.py})
-no depèn de cap implementació concreta, sinó de dues \emph{interfícies}
-(contractes): qualsevol vista i qualsevol model que les satisfacin són
-intercanviables sense tocar el controlador. Aquesta indirecció és la que permet
-reutilitzar el mateix nucli de joc per a una interfície gràfica humana o per als
-adaptadors d'\ac{AR}. La figura~\ref{fig:mvc} resumeix aquesta organització.
+La clau del disseny és que el controlador no depèn de cap implementació concreta,
+sinó de dues \emph{interfícies} (contractes): qualsevol vista i qualsevol model que
+les satisfacin són intercanviables sense tocar el controlador. Aquesta indirecció és
+la que permet reutilitzar el mateix nucli de joc tant per a una interfície gràfica
+humana com per als adaptadors d'\ac{AR}. La figura~\ref{fig:mvc} resumeix aquesta
+organització.
 
 \begin{figure}[H]
   \centering
@@ -234,52 +234,47 @@ i~\ref{tab:contracte-vista} en resumeixen els mètodes principals.
 
 \subsection*{El bucle de joc}
 
-El controlador (\texttt{Controlador.executar\_partida}) implementa un bucle únic
-que avança mentre la partida no acabi. A cada iteració consulta qui té el torn; si
-és un humà, mostra l'estat per la vista, li demana una acció i l'aplica al model;
+El controlador implementa un bucle únic que avança mentre la partida no acabi
+(algorisme~\ref{alg:bucle}).A cada iteració consulta qui té el torn; si
+és un humà, mostra l'estat i li demana una acció per la vista i l'aplica al model;
 si és un bot, obté l'acció directament del model i l'aplica. Després de cada jugada
 comunica a la vista els esdeveniments rellevants (qui ha guanyat l'envit o el
-truc) i, en acabar, mostra el resultat. Tota la lògica de joc resta al model i
-tota la presentació resta a la vista; el controlador només coordina.
+truc) i, en acabar, mostra el resultat. La propietat clau és la separació de responsabilitats: tota la
+lògica de joc resta al model, tota la presentació resta a la vista, i el controlador
+es limita a coordinar-los sense conèixer els detalls interns de cap dels dos.
 
-\begin{lstlisting}[language=Python, caption={Bucle principal de \texttt{Controlador.executar\_partida}.}, label={lst:bucle}]
-def executar_partida(self, override_config=None):
-    config = override_config or self.vista.demanar_config()
-    self.model.iniciar(config)
+\begin{algorithm}[H]
+  \caption{Bucle principal de joc gestionat pel controlador.}
+  \label{alg:bucle}
+  \begin{algorithmic}[1]
+    \State obtenir la configuració de la partida i inicialitzar el model
+    \While{la partida no ha acabat}
+      \State $j \gets$ jugador a qui correspon el torn
+      \If{$j$ és humà}
+        \State mostrar a la vista l'estat visible per $j$
+        \State $a \gets$ acció triada per l'usuari entre les legals
+      \Else
+        \State $a \gets$ acció decidida pel jugador automàtic
+      \EndIf
+      \State aplicar $a$ al model i avançar l'estat del joc
+      \State comunicar a la vista l'acció i els esdeveniments que se'n deriven
+    \EndWhile
+    \State mostrar a la vista el marcador i el resultat final
+  \end{algorithmic}
+\end{algorithm}
 
-    while not self.model.es_final():
-        pid = self.model.get_jugador_actual()
-        if self.model.es_huma(pid):
-            estat = self.model.get_estat(pid)
-            self.vista.mostrar_estat(estat)
-            accio = self.vista.escollir_accio(
-                estat["accions_legals"], estat)
-            self.model.aplicar_accio(accio)
-            self.vista.mostrar_accio(pid, ACTION_LIST[accio],
-                                     es_bot=False)
-        else:
-            accio, nom = self.model.get_accio_bot(pid)
-            self.model.aplicar_accio(accio)
-            self.vista.mostrar_accio(pid, nom, es_bot=True)
-        self._comunicar_esdeveniments_recents()
-
-    resultat = self.model.get_resultat()
-    self.vista.mostrar_fi_partida(
-        resultat["score"], resultat["payoffs"])
-\end{lstlisting}
-
-L'adaptador principal del model és \texttt{ModelInteractiu}, que embolcalla
-una instància de \texttt{TrucGame} i li afegeix dues capacitats: aïllar el
-motor de joc darrere del contracte i injectar models d'\ac{AR} preentrenats
-als jugadors automàtics, de manera que un bot pugui ser tant un agent aleatori
-com una xarxa neuronal entrenada.
+Entre el controlador i el motor hi ha un adaptador que compleix el contracte del
+model: embolcalla el motor de joc (\texttt{TrucGame}) i hi afegeix la capacitat
+d'assignar a cada jugador automàtic qualsevol política, des d'un agent aleatori fins
+a una xarxa neuronal entrenada. Gràcies a aquesta indirecció, substituir el rival per
+un agent d'\ac{AR} no exigeix cap canvi ni al controlador ni a la resta del motor.
 
 \subsection*{Les interfícies}
 
 El projecte ofereix dues vistes plenament funcionals. La \textbf{vista de consola}
 és una interfície de text, lleugera i adequada per a execucions automàtiques i
 depuració en entorns sense pantalla. La \textbf{vista d'escriptori} és una interfície
-gràfica que representa l'estat amb imatges reals de naips i recull les accions per
+gràfica que representa l'estat amb imatges reals de cartes i recull les accions per
 clic de ratolí, intercalant retards artificials en els moviments dels bots per
 emular el ritme d'un rival humà. La interfície gràfica permet jugar partides
 1~contra~1 (humà contra humà o humà contra agent) i 2~contra~2 entre humans amb
@@ -331,15 +326,16 @@ canta l'envit o el truc, es responen les apostes i es juguen les cartes.
 
 \begin{figure}[H]
   \centering
+  \resizebox{\textwidth}{!}{%
   \begin{tikzpicture}[
     bloc/.style={draw, rounded corners=4pt, minimum height=1.0cm, align=center,
                  font=\small, inner xsep=5pt},
     >=Stealth, thick, node distance=0.9cm
   ]
     \node[bloc] (inici) {Inici de ronda};
-    \node[bloc, right=of inici] (f0) {Fase 0\\[2pt]\footnotesize senyals (opcional)};
-    \node[bloc, right=of f0] (f1) {Fase 1\\[2pt]\footnotesize apostes i joc};
-    \node[bloc, right=of f1] (eval) {Avaluació\\[2pt]\footnotesize de la jugada};
+    \node[bloc, right=2.4cm of inici] (f0) {Fase 0\\[2pt]\footnotesize senyals (opcional)};
+    \node[bloc, right=2.4cm of f0] (f1) {Fase 1\\[2pt]\footnotesize apostes i joc};
+    \node[bloc, right=2.4cm of f1] (eval) {Avaluació\\[2pt]\footnotesize de la jugada};
     \node[bloc, above=1.8cm of f1] (resp)
           {Resposta adversari\\[2pt]\footnotesize (\texttt{PENDING})};
 
@@ -355,7 +351,8 @@ canta l'envit o el truc, es responen les apostes i es juguen les cartes.
     \draw[->] ([xshift=-5pt]resp.south) --
               node[left, font=\footnotesize]{accepta / contra / rebutja}
               ([xshift=-5pt]f1.north);
-  \end{tikzpicture}
+  \end{tikzpicture}%
+  }
   \caption{Fases d'un torn. Sense senyes, la Fase~0 se salta.
            Quan es canta truc o envit, el motor entra en estat \texttt{PENDING}
            i el torn passa a l'adversari fins que respon; resoluda l'aposta,

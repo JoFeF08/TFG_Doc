@@ -1,6 +1,6 @@
 %!TeX root=MemoriaTFG.tex
 
-\chapter{Entorns d'Aprenentatge per Reforç}
+\chapter{Entorn d'Aprenentatge per Reforç}
 \label{cap:entorns}
 
 Per entrenar agents d'\ac{AR} al Truc cal adaptar el motor de joc a la interfície
@@ -17,18 +17,16 @@ el sistema de recompenses.
 L'entorn s'organitza en dos nivells d'abstracció superposats (figura~\ref{fig:capes-entorn}):
 
 \begin{enumerate}
-  \item \textbf{Capa RLCard} (\texttt{TrucEnv} / \texttt{TrucEnvMa}): hereta
-        de la classe base \texttt{Env} de RLCard i encapsula el bucle de joc.
-        S'encarrega de convertir l'estat intern del motor en observacions estructurades
-        (mètode \texttt{\_extract\_state}), d'exposar les accions legals en cada pas
-        (\texttt{\_get\_legal\_actions}) i de recollir les trajectòries completes.
+  \item \textbf{Capa RLCard} (\texttt{TrucEnv} / \texttt{TrucEnvMa}): fa de pont
+        entre el motor de joc i el món de l'\ac{AR}. Tradueix l'estat intern del motor
+        en observacions estructurades, determina quines accions són legals a cada pas
+        i recull les trajectòries completes de la partida.
 
-  \item \textbf{Capa Gymnasium} (\texttt{TrucGymEnv} / \texttt{TrucGymEnvMa}):
-        embolcalla la capa RLCard amb la interfície estàndard de Gymnasium (mètodes
-        \texttt{reset} i \texttt{step}) per fer-la compatible amb \acf{SB3}.
-        Gestiona els torns de l'oponent (\texttt{\_skip\_opponent\_turns}) i acumula
-        els rewards intermedis que es generen entre dues accions consecutives de
-        l'agent aprenent.
+  \item \textbf{Capa Gymnasium} (\texttt{TrucGymEnv} / \texttt{TrucGymEnvMa}): adapta
+        la capa anterior a la interfície estàndard de Gymnasium (reinici i pas) perquè
+        les biblioteques d'\acf{SB3} la puguin entrenar sense saber res del Truc. A
+        més, fa transparent el torn del rival (avança el joc fins que torna a tocar a
+        l'agent aprenent) i acumula les recompenses intermèdies.
 \end{enumerate}
 
 \begin{figure}[H]
@@ -69,29 +67,29 @@ al capítol~\ref{cap:metodologia}.
 A més d'aquests dos parells, hi ha dues variants especialitzades:
 
 \begin{itemize}
-  \item \texttt{TrucGymEnvSessio} (\texttt{joc/entorn\_ma/gym\_env\_sessio.py}):
-        l'episodi agrupa $N$ mans consecutives contra el mateix oponent (per defecte
-        $N=5$). L'oponent se samplea del \emph{pool} a cada \texttt{reset()}, cosa
-        que obliga l'agent a acumular context entre mans i potencialment detectar els
-        patrons de l'oponent. S'ha usat a la Fase~4 (memòria cross-mans amb
-        \texttt{RecurrentPPO}).
+  \item \textbf{Entorn de sessió} (\texttt{TrucGymEnvSessio}): l'episodi agrupa $N$
+        mans consecutives contra el mateix oponent (per defecte $N=5$), que es
+        selecciona del \emph{pool} a l'inici de cada episodi. En no reiniciar l'estat
+        entre mans, obliga l'agent a acumular context al llarg de la sessió i li dona
+        l'oportunitat de detectar el patró de joc del rival. S'usa a la Fase~4
+        (memòria entre mans amb \texttt{RecurrentPPO}).
 
-  \item \texttt{parallel\_env\_ma.py}: procés fill (\texttt{worker}) que executa
-        \texttt{TrucEnvMa} en un procés separat via \texttt{multiprocessing} i
-        retorna les trajectòries amb els rewards intermedis al procés principal.
-        Permet col·lectar dades de múltiples episodis en paral·lel durant l'entrenament
-        propi de \ac{NFSP}.
+  \item \textbf{Entorn paral·lel}: executa diverses instàncies de l'entorn per mà en
+        processos separats i en recull les trajectòries (amb les recompenses
+        intermèdies) al procés principal. Permet col·lectar dades de molts episodis
+        simultàniament, cosa que accelera l'entrenament propi de \ac{NFSP}.
 \end{itemize}
 
-El mètode \texttt{set\_opponent()} de \texttt{TrucGymEnv} permet canviar l'agent
-oponent en calent sense reconstruir l'entorn; això és imprescindible per als callbacks
-d'entrenament que implementen el pool d'oponents i el curriculum.
+L'entorn permet, a més, substituir el rival en calent sense reconstruir-lo. Aquesta
+capacitat és imprescindible perquè els mecanismes d'entrenament puguin anar canviant
+d'oponent durant una mateixa execució, tal com requereixen el \emph{pool} d'oponents
+i el \emph{curriculum learning}.
 
 \section{Espai d'observació}
 \label{sec:observacio}
 
-L'observació que rep l'agent en cada pas és un diccionari amb dues entrades
-complementàries, generades per \texttt{\_extract\_state} a \texttt{env.py}:
+L'observació que rep l'agent en cada pas combina dues representacions
+complementàries:
 
 \begin{itemize}
   \item \texttt{obs\_cartes}: tensor de forma $(6, 4, 9)$, que codifica en
@@ -183,25 +181,22 @@ capítol~\ref{cap:metodologia}.
 \section{Espai d'accions i màscara}
 \label{sec:accions-entorn}
 
-L'espai d'accions conté 19 accions discreta, definides al capítol~\ref{cap:joc}. No
+L'espai d'accions conté 19 accions discretes, definides al capítol~\ref{cap:joc}. No
 totes elles són legals en tot moment: si hi ha un Truc pendent, l'agent només pot
 respondre (vull, fora o contra); si s'estan jugant cartes no pot apostar si ja ha
 apostat abans en la mateixa mà, etc.
 
-El mètode \texttt{\_get\_legal\_actions()} retorna un \texttt{OrderedDict} amb les
-accions vàlides en el pas actual. En els wrappers Gymnasium, aquest conjunt
-s'emmagatzema a \texttt{self.\_legal\_actions} i s'usa de dues maneres:
+A cada pas, l'entorn calcula el conjunt d'accions vàlides segons la situació i el posa
+a disposició de l'algorisme de dues maneres complementàries:
 
 \begin{itemize}
-  \item \textbf{Fallback d'acció il·legal}: si el model prediu una acció fora del
-        conjunt legal, \texttt{TrucGymEnv.step()} la substitueix per la primera
-        acció legal (\texttt{legal\_actions[0]}). Això garanteix que l'entorn mai
-        no genera errors per accions invàlides durant les primeres fases d'entrenament,
-        quan el model és quasi aleatori.
-  \item \textbf{Màscara explícita}: en algoritmes que ho suporten (com el \ac{PPO}
-        amb màscares de \ac{SB3}), es pot passar la llista de booleà directament
-        al model per forçar que la distribució de política sigui zero en accions
-        il·legals.
+  \item \textbf{Correcció d'accions il·legals}: si el model tria una acció que no és
+        vàlida (cosa habitual a les primeres fases, quan la política és gairebé
+        aleatòria), l'entorn la reemplaça per una acció legal en lloc de generar un
+        error. Així l'entrenament mai no s'interromp per una jugada invàlida.
+  \item \textbf{Màscara explícita}: amb els algorismes que ho admeten (com el \ac{PPO}
+        amb màscara d'accions de \ac{SB3}), el conjunt legal es passa directament a la
+        política perquè assigni probabilitat zero a les accions il·legals.
 \end{itemize}
 
 En jocs amb apostes encadenades com el Truc, la màscara és especialment important:
@@ -221,8 +216,8 @@ en condicions de recompensa escassa. La solució és el \emph{reward shaping}.
 
 \subsection*{Recompensa terminal}
 
-\texttt{get\_payoffs()} retorna la recompensa final quan la partida (o la mà, en el
-cas de \texttt{TrucEnvMa}) acaba:
+Quan acaba la partida (o la mà, en la variant de gra fi) l'entorn lliura la
+recompensa terminal:
 
 \begin{itemize}
   \item \textbf{\texttt{TrucEnv} (partida completa)}: $+1{,}0$ per a l'equip
@@ -234,16 +229,13 @@ cas de \texttt{TrucEnvMa}) acaba:
 
 \subsection*{Recompenses intermèdies}
 
-El motor emmagatzema les recompenses intermèdies al camp
-\texttt{reward\_intermedis} de cada transició. Atès que RLCard posa per
-disseny recompensa zero a totes les transicions intermèdies, la funció
-\texttt{reorganize\_amb\_rewards} postprocessa les trajectòries un cop
-acabat l'episodi: per a cada transició extreu el camp \texttt{reward\_intermedis}
-del \texttt{raw\_obs} i substitueix el zero pel valor acumulat de l'equip,
-deixant intacte el \emph{payoff} final.
-
-Als wrappers Gymnasium, \texttt{\_reward\_from\_raw()} extreu directament el reward
-intermedi en cada crida a \texttt{step()} i l'amplifica per un factor~5:
+El motor associa a cada transició una recompensa intermèdia que reflecteix el
+resultat immediat de l'acció. El tractament difereix segons la capa. A la capa
+RLCard, que per disseny deixa totes les transicions intermèdies a zero, un postprocés
+recorre la trajectòria un cop acabat l'episodi i substitueix aquests zeros pel valor
+acumulat de l'equip, deixant intacte el \emph{payoff} final. A la capa Gymnasium, en
+canvi, la recompensa intermèdia s'extreu i s'aplica directament a cada pas,
+amplificada per un factor~5:
 
 \begin{equation}
   r_t = \texttt{reward\_intermedis}[\text{equip}] \times 5{,}0
@@ -279,7 +271,7 @@ Les recompenses intermèdies que emet el motor es desglossen de la manera següe
   \item \textbf{Guanyar la mà (truc net)}: $\pm 1{,}0\times$ el factor base.
 \end{itemize}
 
-La variant per mans (\texttt{TrucGameMa}) simplifica el sistema: acumula un únic
-reward net al final de cada mà com $\pm\,\text{punts}/24$, sense senyals de ronda
-individuals. Això afavoreix un aprenentatge més estable per a la fase de
-\emph{curriculum learning} on cada episodi és una única mà.
+La variant per mans simplifica el sistema: acumula un únic reward net al final de
+cada mà com $\pm\,\text{punts}/24$, sense senyals de ronda individuals. Això afavoreix
+un aprenentatge més estable per a la fase de \emph{curriculum learning} on cada
+episodi és una única mà.
