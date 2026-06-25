@@ -338,7 +338,22 @@ convergència a Nash menys garantida teòricament.
 
 Aquesta secció descriu els algorismes i tècniques d'\ac{AR} que s'empren a la
 part experimental del treball, des dels algorismes base fins als marcs de
-self-play.
+self-play. La taula~\ref{tab:comparativa-algorismes} ofereix una visió de conjunt.
+
+\begin{table}[H]
+  \centering
+  \caption{Característiques principals dels algorismes d'\acs{AR} emprats al treball.}
+  \label{tab:comparativa-algorismes}
+  \begin{tabular}{lllll}
+    \toprule
+    \textbf{Algorisme} & \textbf{Família} & \textbf{On/Off-policy} & \textbf{Memòria} & \textbf{Ref.} \\
+    \midrule
+    \acs{DQN}  & Aprox.\ funcions de valor & Off-policy & Experience replay  & \cite{mnih2015dqn}      \\
+    \acs{PPO}  & Actor-crític              & On-policy  & Cap                & \cite{schulman2017ppo}  \\
+    \acs{NFSP} & Fictitious self-play      & Tots dos   & Reservoir buffer   & \cite{heinrich2016nfsp} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \subsection{Deep Q-Network}
 \label{sec:dqn}
@@ -593,17 +608,3 @@ l'equilibri (\emph{Nash gap}) es mesura comparant la millor resposta amb la
 política promig: si cap de les dues pot guanyar sistemàticament a l'altra, el
 sistema és a prop de l'equilibri. La mètrica concreta es defineix al
 capítol~\ref{cap:metodologia}.
-
-\begin{table}[H]
-  \centering
-  \caption{Comparativa dels algorismes d'\acs{AR} emprats al treball.}\label{tab:comparativa-algorismes}
-  \begin{tabular}{lcccc}
-    \toprule
-    \textbf{Algorisme} & \textbf{On/Off-policy} & \textbf{Memòria} & \textbf{Garantia Nash} & \\
-    \midrule
-    \acs{DQN}  & Off-policy & Experience replay  & No         \\
-    \acs{PPO}  & On-policy  & Cap                & No                 \\
-    \acs{NFSP} & Tots dos   & Reservoir buffer   & Aproximada             \\
-    \bottomrule
-  \end{tabular}
-\end{table}
