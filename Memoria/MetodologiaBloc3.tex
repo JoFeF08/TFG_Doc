@@ -1,4 +1,4 @@
-%!TeX root=MemoriaTFG.tex
+﻿%!TeX root=MemoriaTFG.tex
 
 \section{Bloc 3: robustesa i aproximació a l'equilibri}
 \label{sec:bloc3}
@@ -340,13 +340,18 @@ Fase~1 fins a tres candidats a desplegament, cadascun amb un perfil diferent. La
 selecció definitiva del model a desplegar es resol al Checkpoint~3
 (secció~\ref{sec:checkpoint3}), un cop es disposi del re-run amb el criteri corregit.
 
-\subsection*{Punt de control~3: candidats a desplegament}\label{sec:checkpoint3}
+\subsection{Checkpoint 3: model de desplegament}
+\label{sec:checkpoint3}
 
-La Fase~6 produeix tres pesos candidats que representen perfils d'optimització distints.
-Per comparar-los s'ha fet una avaluació independent i precisa de cadascun: 200~partides
-per enfrontament i balancejades per posició (meitat mà, meitat post), molt més fiable que
-les avaluacions periòdiques de 15~partides del \texttt{training\_log.csv}. Els resultats
-(taula~\ref{tab:checkpoint3}) confirmen la limitació del \texttt{best\_nash} original.
+La Fase~6 produeix tres pesos candidats (\texttt{best.zip}, \texttt{best\_nash.zip} i
+\texttt{sl\_final.pt}). En detectar la limitació del criteri de selecció del
+\texttt{best\_nash} (descrita a continuació) s'ha llançat una \textbf{re-execució
+corregida} de l'entrenament, que n'aporta dos candidats addicionals. Tots cinc s'han
+avaluat de manera independent i precisa: 500~partides per enfrontament i balancejades per
+posició (l'agent fa de mà en la meitat de les partides i de segon jugador en l'altra
+meitat, per cancel·lar l'avantatge de qui obre), molt més fiable que les avaluacions
+periòdiques de
+15~partides del \texttt{training\_log.csv} (taula~\ref{tab:checkpoint3}).
 
 \begin{table}[H]
   \centering
@@ -354,21 +359,27 @@ les avaluacions periòdiques de 15~partides del \texttt{training\_log.csv}. Els 
     \toprule
     Model & \texttt{wr\_pool\_mean} & \texttt{metric\_robust} & \texttt{exploit\_vs\_sl} \\
     \midrule
-    \texttt{best.zip}~F6       & 70{,}7\% & 69{,}2\% & 12{,}0~pp \\
-    \texttt{best\_nash.zip}~F6 & 69{,}8\% & 67{,}5\% & 10{,}0~pp \\
-    \texttt{sl\_final.pt}~F6   & 34{,}7\% & 32{,}2\% & — \\
+    \texttt{best.zip}~F6         & 67{,}3\% & 65{,}0\% & 15{,}2~pp \\
+    \texttt{best\_nash.zip}~F6   & 68{,}0\% & 65{,}6\% & 9{,}4~pp \\
+    \texttt{sl\_final.pt}~F6     & 34{,}2\% & 31{,}8\% & — \\
+    \midrule
+    \texttt{best.zip} re-run     & \textbf{69{,}2\%} & \textbf{67{,}0\%} & \textbf{7{,}4~pp} \\
+    \texttt{best\_nash.zip} re-run & 68{,}1\% & 65{,}4\% & 10{,}0~pp \\
     \bottomrule
   \end{tabular}
-  \caption{Candidats a desplegament al tancament de la Fase~6, avaluats amb 200~partides
-           balancejades per posició contra les 6~variants del pool. L'\texttt{exploit\_vs\_sl}
-           es mesura contra \texttt{sl\_final.pt}; per això no aplica a la fila del propi
-           \ac{SL}. Cap candidat baixa del llindar de 8~pp amb avaluació fiable.}%
+  \caption{Candidats a desplegament, avaluats amb 500~partides balancejades per posició
+           contra les 6~variants del pool. Les tres primeres files són els pesos de la
+           Fase~6 original; les dues últimes, els de la re-execució corregida (12M passos).
+           L'\texttt{exploit\_vs\_sl} es mesura contra \texttt{sl\_final.pt}; per això no
+           aplica a la fila del propi \ac{SL}. Només el \texttt{best.zip} del re-run baixa
+           del llindar de 8~pp.}%
   \label{tab:checkpoint3}
 \end{table}
 
-\emph{Limitació detectada.} El \emph{checkpoint} \texttt{best\_nash.zip} va ser
-seleccionat al pas~1M perquè en aquell moment \(\text{exploit\_vs\_sl}=3{,}3\)~pp era
-el mínim de l'entrenament. Aquest valor, però, és espuri per dos motius. Primer, la
+El criteri de selecció del \texttt{best\_nash} de la Fase~6, però, té una
+\textbf{debilitat}. El \emph{checkpoint} va ser desat al pas~1M perquè en aquell moment
+\(\text{exploit\_vs\_sl}=3{,}3\)~pp era el mínim de l'entrenament, però aquest valor és
+espuri per dos motius. Primer, la
 resolució: l'avaluació en línia juga només 15~partides, així que el valor mínim
 observable diferent de zero és exactament \(|7/15-50|=3{,}3\)~pp; guanyar 7~o~8 de 15 és
 el resultat més probable d'un enfrontament equilibrat, de manera que la mètrica no pot
@@ -384,42 +395,72 @@ entra 25~vegades per sota del llindar de 8~pp, i la freqüència d'aquests enfon
 recurrent, però el criteri de selecció sense llindar mínim de passos arxiva el primer
 pic espuri en lloc d'aquests enfonsaments genuïns.
 
-La taula~\ref{tab:checkpoint3} ho confirma amb una avaluació precisa: amb 200~partides
-balancejades, l'\texttt{exploit\_vs\_sl} real del \texttt{best\_nash.zip} és de 10~pp,
-gairebé igual que el del \texttt{best.zip} (12~pp). El \texttt{best\_nash} original, per
-tant, no és menys explotable que la millor resposta. A més, el valor estructural de ~10~pp
-prové en part de la feblesa del propi \ac{SL} (\texttt{sl\_final.pt} bat el pool només al
-34{,}7\%): qualsevol \ac{PPO} decent hi guanya ~60~\%, cosa que limita l'\texttt{exploit\_vs\_sl}
-com a indicador de Nash mentre la política mitjana no convergeixi.
+La taula~\ref{tab:checkpoint3} ho confirma amb una avaluació precisa: amb 500~partides
+balancejades, l'\texttt{exploit\_vs\_sl} real del \texttt{best\_nash.zip} és de 9{,}4~pp,
+molt lluny dels 3{,}3~pp que indicava en línia. El valor mínim en línia, per tant, era
+soroll i no un equilibri real. A més, la feblesa del propi \ac{SL}
+(\texttt{sl\_final.pt} bat el pool només al 34{,}2\%) fa que qualsevol \ac{PPO} decent hi
+guanyi de forma clara, cosa que limita l'\texttt{exploit\_vs\_sl} com a indicador de Nash
+mentre la política mitjana no convergeixi.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{figures/checkpoint3/comparacio_candidats.pdf}
-  \caption{Win-rate dels tres candidats contra les 6~variants del pool (200~partides
-           balancejades per variant). \texttt{best.zip} i \texttt{best\_nash.zip} rendeixen
-           gairebé igual; \texttt{sl\_final.pt} (política mitjana \ac{SL}) queda clarament
-           per sota del 50~\% a totes les variants.}%
+  \caption{Win-rate dels cinc candidats contra les 6~variants del pool (500~partides
+           balancejades per variant). Els quatre \ac{PPO} (originals i del re-run) rendeixen
+           de forma similar i molt per sobre del 50~\%; \texttt{sl\_final.pt} (política
+           mitjana \ac{SL}) queda clarament per sota a totes les variants.}%
   \label{fig:checkpoint3-candidats}
 \end{figure}
 
-\emph{Re-run planificat.} Per obtenir un \texttt{best\_nash} fiable cal introduir
-tres canvis al guió d'entrenament
-(\texttt{RL/entrenament/entrenamentsComparatius/fase6/entrenament\_fase6.py}):
-(1)~un llindar mínim de \(10^7\) passos que impedeixi arxivar el \texttt{best\_nash}
-abans del pas~10M, quan la \texttt{sl\_loss} ja s'ha estabilitzat;
-(2)~pujar les partides d'avaluació de 15 a 60 i alternar-ne la posició (resolució
-$\approx$1{,}7~pp i sense biaix de mà); i (3)~arrancar en calent des de
-\texttt{best.zip}~F6. La durada prevista és de 20--30M passos addicionals, suficient
-per cobrir el rang on els enfonsaments reals del Nash gap són més freqüents.
+\emph{Re-execució corregida.} Per evitar la selecció espuria s'han introduït tres canvis
+al guió d'entrenament:
+(1)~un llindar mínim de \(10^7\) passos que impedeix arxivar el \texttt{best\_nash} abans
+del pas~10M, quan la \texttt{sl\_loss} ja s'ha estabilitzat; (2)~pujar les partides
+d'avaluació de 15 a 60 i alternar-ne la posició (resolució $\approx$1{,}7~pp i sense biaix
+de mà); i (3)~arrancar en calent des del \texttt{best.zip}~F6. La re-execució cobreix 12M~passos i el guard funciona com s'esperava: a
+1M la corba torna a tocar el terra de resolució (1{,}7~pp), però ja no s'arxiva, i el
+primer \texttt{best\_nash} només es desa a partir del pas~10M.
 
-\emph{Protocol d'avaluació definitiu.} Amb l'avaluació precisa actual
-(taula~\ref{tab:checkpoint3} i figura~\ref{fig:checkpoint3-candidats}), \emph{cap} dels
-tres candidats compleix simultàniament \(\text{exploit\_vs\_sl}<8\)~pp i
-\(\text{metric\_robust}\geq70\%\): per tant, mentre no es disposi del re-run, el model
-operatiu per defecte és \texttt{best.zip}~F6, que té la \texttt{metric\_robust} més alta
-(69{,}2\%) i el Nash gap més proper al llindar. Quan el re-run estigui disponible, el seu
-\texttt{best\_nash} s'avaluarà amb el mateix protocol i s'adoptarà per al desplegament si
-baixa del llindar de 8~pp mantenint una robustesa equiparable.
+\emph{Decisió de desplegament.} L'avaluació precisa (taula~\ref{tab:checkpoint3} i
+figura~\ref{fig:checkpoint3-candidats}) revela dos resultats clau. Primer, el
+\texttt{best.zip} de la re-execució és \textbf{l'únic candidat que baixa del llindar de
+Nash} (\(\text{exploit\_vs\_sl}=7{,}4\)~pp) i a més és el més robust de tots
+(\(\text{metric\_robust}=67{,}0\%\) i la \(\operatorname{std}_{\text{pool}}\) més baixa,
+4{,}4). S'adopta, doncs, com a \textbf{model de desplegament}. Segon, la selecció per
+\texttt{exploit\_vs\_sl} mínim en línia \emph{no} identifica el model menys explotable:
+tant el \texttt{best\_nash} original (3{,}3~pp en línia, 9{,}4~pp real) com el del re-run
+(1{,}7~pp en línia, 10{,}0~pp real) tenen una explotabilitat real força superior al
+\texttt{best.zip} del re-run. El que de debò produeix un agent menys explotable és
+l'entrenament \ac{NFSP} en si, i el millor \emph{checkpoint} resulta ser el de màxima
+\texttt{metric}, no el de Nash gap mínim. Aquest comportament és coherent amb la limitació
+de fons del \ac{NFSP}: la política mitjana \ac{SL} no arriba a convergir
+(\texttt{sl\_final.pt} bat el pool només al 34{,}2\%) i, per tant, \texttt{exploit\_vs\_sl}
+en línia és un indicador de Nash sorollós mentre no es disposi d'un pressupost molt
+superior (\(10^8\)--\(10^9\)~episodis)~\cite{heinrich2016nfsp}.
+
+\emph{Força relativa: round-robin.} Per contrastar la decisió s'ha fet un enfrontament
+directe de tots els candidats entre ells (500~partides balancejades per parella,
+figura~\ref{fig:checkpoint3-rr}). Cara a cara, el guanyador no és el model de desplegament
+sinó el \texttt{best.zip} \emph{original} (56{,}2\% de mitjana contra els altres quatre),
+mentre que el \texttt{best.zip} del re-run queda al mig (49{,}4\%). Això no contradiu la
+decisió: il·lustra el compromís entre \emph{millor resposta} i \emph{equilibri}. El
+\texttt{best.zip} original és una millor resposta més afilada (ataca millor altres
+polítiques concretes), però és justament el més explotable (15{,}2~pp); el \texttt{best.zip}
+del re-run sacrifica una mica d'agressivitat a canvi de ser el menys explotable i el més
+robust. Per a un desplegament contra oponents desconeguts, on no es pot anticipar l'estil
+del rival, la baixa explotabilitat i la robustesa pesen més que la força en un duel concret.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.72\linewidth]{figures/checkpoint3/round_robin.pdf}
+  \caption{Round-robin entre candidats: win-rate de la fila contra la columna
+           (500~partides balancejades). El \texttt{best.zip} original domina els duels
+           directes, però és el més explotable de tots; el \texttt{best.zip} del re-run,
+           el model desplegat, prioritza la no-explotabilitat sobre la força en un duel
+           concret.}%
+  \label{fig:checkpoint3-rr}
+\end{figure}
 
 L'anàlisi del comportament estratègic del model desplegat (gestió de l'envit,
 freqüència del farol al truc, coordinació) es presenta al

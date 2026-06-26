@@ -42,3 +42,4 @@ Memoria/*.brf
 Memoria/*.fls
 Memoria/*.fdb_latexmk
 Memoria/*.synctex.gz
+notebooks/7_checkpoint3/ppo_nfsp_rerun/
