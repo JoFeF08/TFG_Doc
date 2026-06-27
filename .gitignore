@@ -28,6 +28,9 @@ planning.md
 codi/
 fet/
 
+# Figures de la memòria (derivades; es regeneren localment)
+Memoria/figures/
+
 # Auxiliars de compilació LaTeX
 Memoria/aux/
 Memoria/*.aux
@@ -43,3 +46,11 @@ Memoria/*.fls
 Memoria/*.fdb_latexmk
 Memoria/*.synctex.gz
 notebooks/7_checkpoint3/ppo_nfsp_rerun/
+
+# Notebooks d'anàlisi del Checkpoint 3 (derivats; no es pengen al repo)
+notebooks/8_resultats/analisi_model.ipynb
+notebooks/8_resultats/analisi_best.ipynb
+notebooks/8_resultats/analisi_best_nash.ipynb
+notebooks/8_resultats/analisi_sl_final.ipynb
+notebooks/8_resultats/analisi_best_rerun.ipynb
+notebooks/8_resultats/analisi_best_nash_rerun.ipynb

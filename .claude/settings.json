@@ -6,7 +6,8 @@
       "Bash(rm -rf Memoria/figures)",
       "Bash(grep -hE \"includegraphics|\\\\\\\\\\\\\\\\label\\\\{fig\" MetodologiaBloc3.tex)",
       "Bash(cd \"C:/Users/ferri/Documents/ProjectesCodi/TFG-truc\" && find RL/models/sb3 -name \"*.py\" | head -20)",
-      "mcp__jupyter__restart_notebook"
+      "mcp__jupyter__restart_notebook",
+      "Bash(jupyter nbconvert *)"
     ]
   }
 }
