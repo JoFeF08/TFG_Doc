@@ -1,4 +1,4 @@
-%!TeX root=MemoriaTFG.tex
+﻿%!TeX root=MemoriaTFG.tex
 
 \section{Bloc 1: línia base i \emph{curriculum learning}}
 \label{sec:bloc1}
@@ -34,7 +34,7 @@ l'algorisme i no a l'arquitectura.
     DQN-RLCard  & RLCard & Off-policy        & 1 entorn seqüencial \\
     NFSP-RLCard & RLCard & Off-policy + \acs{SL} & 1 entorn seqüencial \\
     DQN-SB3     & \ac{SB3} & Off-policy      & 1 entorn \\
-    PPO-SB3     & \ac{SB3} & On-policy       & 48 entorns (\texttt{SubprocVecEnv}) \\
+    PPO-SB3     & \ac{SB3} & On-policy       & 48 entorns (\emph{SubprocVecEnv}) \\
     \bottomrule
   \end{tabular}
   \caption{Els quatre algorismes comparats a la Fase~1.}
@@ -53,8 +53,8 @@ es mesura el rendiment sota dues òptiques complementàries:
 
 \emph{Oponents.} Cada agent s'entrena contra una barreja d'oponents
 (taula~\ref{tab:fase1-oponents}) amb un criteri comú: una petita fracció de
-\texttt{RandomAgent} (per mantenir diversitat i explorar estats poc habituals) i un gruix
-d'\texttt{AgentRegles} (el senyal estratègic principal). La diferència és el
+l'agent aleatori (per mantenir diversitat i explorar estats poc habituals) i un gruix
+de l'agent basat en regles (el senyal estratègic principal). La diferència és el
 \emph{self-play}: els agents de RLCard (DQN i NFSP) el suporten de manera nativa, de manera
 que un 30\% de les partides es juguen contra una versió del propi agent. En el cas del DQN,
 aquesta versió és una còpia \emph{Polyak} que s'actualitza lentament (un 5\% cap als pesos  
@@ -65,7 +65,7 @@ pressa com per desestabilitzar l'aprenentatge.
   \centering
   \begin{tabular}{lccc}
     \toprule
-    Agent & Random & \texttt{AgentRegles} & Self-play \\
+    Agent & Random & l'agent basat en regles & Self-play \\
     \midrule
     DQN-RLCard  & 10\%      & 60\%       & 30\% (Polyak) \\
     NFSP-RLCard & 10\%      & 60\%       & 30\% (natiu) \\
@@ -75,7 +75,7 @@ pressa com per desestabilitzar l'aprenentatge.
   \end{tabular}
   \caption{Distribució d'oponents per episodi a la Fase~1. Els agents de RLCard
            incorporen self-play; els de \ac{SB3} entrenen només contra oponents fixos
-           (\texttt{RandomAgent} i \texttt{AgentRegles}).}
+           (l'agent aleatori i l'agent basat en regles), sense self-play.}
   \label{tab:fase1-oponents}
 \end{table}
 
@@ -87,7 +87,7 @@ partida (la recompensa terminal s'assigna a la darrera jugada de l'aprenent). El
 \ac{SB3} usen la rutina nativa de la biblioteca amb un \emph{callback} que avalua i desa el
 millor model cada 500\,000~passos. PPO genera l'experiència amb 48~entorns en paral·lel
 repartits entre oponents i posicions. Per garantir que l'avaluació mesura generalització i
-no memorització, l'\texttt{AgentRegles} de l'avaluació s'instancia amb una llavor diferent
+no memorització, l'agent basat en regles de l'avaluació s'instancia amb una llavor diferent
 de la d'entrenament.
 
 \paragraph{Resultats.} Cap agent assoleix un rendiment alt \emph{i} estable alhora
@@ -171,7 +171,7 @@ marcador al llarg de la partida (estratègia global). El \emph{curriculum
 learning}~\cite{bengio2009curriculum}, que presenta primer els exemples simples i després
 els complexos, permet desacoblar-los. Al Truc, una \emph{mà} és la unitat natural simple:
 episodi curt ($\sim$15~passos) i recompensa calculable al final. La hipòtesi és que
-entrenar primer sobre mans (amb l'entorn \texttt{TrucGameMa}/\texttt{TrucEnvMa} descrit al
+entrenar primer sobre mans (amb l'entorn \texttt{TrucEnvMa} descrit al
 capítol~\ref{cap:entorns}) i després fer \emph{finetune} sobre partides senceres accelera i
 millora l'aprenentatge respecte a entrenar-hi directament.
 
@@ -180,12 +180,12 @@ millora l'aprenentatge respecte a entrenar-hi directament.
 \emph{El curriculum de dues etapes.} S'ha dissenyat un curriculum que va de la tasca densa
 i curta a l'escassa i llarga (figura~\ref{fig:fase2-curriculum}):
 \begin{enumerate}
-  \item \textbf{Etapa de mans} (12M passos): l'agent s'entrena a \texttt{TrucGameMa}, on
+  \item \textbf{Etapa de mans} (12M passos): l'agent s'entrena a \texttt{TrucEnvMa}, on
         cada mà és un episodi independent ($\sim$15~passos) amb recompensa densa
         normalitzada ($\text{punts}/24$). Aquí aprèn la tàctica local: quan jugar fort,
         quan acceptar un envit, quan plantar el truc.
   \item \textbf{Etapa de partides} (12M passos): els pesos apresos es transfereixen a
-        \texttt{TrucGame}, on l'episodi és una partida sencera fins a 24~punts. L'agent
+        \texttt{TrucEnv}, on l'episodi és una partida sencera fins a 24~punts. L'agent
         parteix d'una política ja formada i el \emph{finetune} recau sobre l'estratègia a
         llarg termini, com la gestió del marcador.
 \end{enumerate}

@@ -184,9 +184,8 @@ organització.
 \subsection*{Els contractes}
 
 El controlador interactua amb el model mitjançant el protocol \texttt{Model}
-i amb la vista mitjançant el protocol \texttt{Vista}, tots dos definits a
-\texttt{controlador/interficie\_model.py} i \texttt{vista/interficie\_vista.py}
-respectivament. Les taules~\ref{tab:contracte-model}
+i amb la vista mitjançant el protocol \texttt{Vista}, tots dos definits als
+fitxers d'interfície respectius. Les taules~\ref{tab:contracte-model}
 i~\ref{tab:contracte-vista} en resumeixen els mètodes principals.
 
 \begin{table}[H]
@@ -284,11 +283,10 @@ suport de senyes.
 \section{El motor de joc}
 \label{sec:motor}
 
-El cor del model és la classe \texttt{TrucGame} (\texttt{entorn/game.py}), que
+El cor del model és la classe \texttt{TrucGame}, que
 gestiona tot l'estat de la partida (jugadors, cartes, apostes, rondes i
 puntuació) de manera independent de qualsevol interfície. Delega
-responsabilitats concretes en tres rols especialitzats, cadascun al seu propi
-fitxer dins \texttt{entorn/rols/}: \texttt{TrucDealer} barreja i reparteix les
+responsabilitats concretes en tres rols especialitzats, cadascun en un mòdul independent: \texttt{TrucDealer} barreja i reparteix les
 cartes; \texttt{TrucJudger} resol la jerarquia, els guanyadors de rondes i el
 càlcul de l'envit; i \texttt{TrucPlayer} representa cada jugador, mantenint la
 mà actual, la mà inicial (necessària per resoldre l'envit encara que les cartes
@@ -362,8 +360,7 @@ canta l'envit o el truc, es responen les apostes i es juguen les cartes.
 
 \subsection*{Fi de mà i fi de partida}
 
-El motor distingeix dos nivells de finalització, tots dos implementats a
-\texttt{entorn/game.py}. La funció \texttt{is\_ma\_over} indica que la mà actual
+El motor distingeix dos nivells de finalització, tots dos implementats al motor de joc. La funció \texttt{is\_ma\_over} indica que la mà actual
 ha acabat (perquè hi ha un guanyador per rondes o perquè algú s'ha retirat),
 moment en què es reparteixen els punts i es reparteix una mà nova. La funció
 \texttt{is\_over} indica que la partida sencera ha acabat, quan un equip arriba

@@ -5,7 +5,7 @@
 
 El model seleccionat al Checkpoint~2 (F4-ablació: PPO + COS congelat + pool) mostra un
 defecte estructural: ha convergit a una política quasi-determinista especialitzada en
-explotar els patrons fixos de les sis variants d'\texttt{AgentRegles}. Contra un oponent
+explotar els patrons fixos de les sis variants de l'agent basat en regles. Contra un oponent
 que varia l'estil, aquesta especialització es converteix en una debilitat. A més, la
 \texttt{metric} clàssica (win-rate ponderat) no detecta el problema, perquè promitja el
 rendiment entre variants i amaga la variança. El tercer bloc ataca el problema des de dues
@@ -19,7 +19,7 @@ component de política mitjana del \ac{NFSP} complet per acostar el sistema a l'
 \paragraph{Hipòtesi.} Un agent entrenat exclusivament contra oponents fixos és explotable:
 qualsevol oponent que surti d'aquests patrons pot descobrir-ne les debilitats. La
 pregunta de recerca (Q4) és: pot un \emph{pool} d'entrenament que combini les variants
-d'\texttt{AgentRegles} amb \emph{snapshots} del propi agent (\ac{FSP}
+de l'agent basat en regles amb \emph{snapshots} del propi agent (\ac{FSP}
 simplificat) reduir l'explotabilitat sense degradar el rendiment global? Les hipòtesis
 concretes són:
 \begin{itemize}
@@ -68,7 +68,7 @@ Fase~6) i aproxima la política promig de l'oponent mantenint una finestra rodan
 s'enfronta a una distribució d'estratègies que representa la seva pròpia evolució
 i no es pot especialitzar en un únic patró.
 
-\emph{El pool mixt.} El pool combina les sis variants d'\texttt{AgentRegles} (sempre
+\emph{El pool mixt.} El pool combina les sis variants de l'agent basat en regles (sempre
 presents, per garantir diversitat des del primer pas i comparabilitat amb F4) amb una
 finestra rodant de fins a sis \emph{snapshots} del propi agent (un cada milió de passos).
 El mostreig és uniform entre tots els candidats: la proporció de self-play augmenta de
@@ -80,7 +80,7 @@ obsolets els oponents de regles (figura~\ref{fig:fase5-pool}).
   \includegraphics[width=\textwidth]{figures/fase5/fase5_pool_mixt.pdf}
   \caption{Composició del pool mixt al llarg del temps. Esquerra: cada fila és un
            instant clau; les caselles blaves (R1--R6) són les sis variants
-           d'\texttt{AgentRegles}, sempre presents; les caselles vermelles (S1--S6)
+           de l'agent basat en regles, sempre presents; les caselles vermelles (S1--S6)
            són els \emph{snapshots} del propi agent, afegits un a un cada milió de
            passos. Dreta: evolució de la proporció de self-play, que passa de 0\% al
            pas~0 fins al 50\% quan el pool és ple (pas~6M en endavant).}
@@ -89,8 +89,8 @@ obsolets els oponents de regles (figura~\ref{fig:fase5-pool}).
 
 \emph{Comparació experimental.} Es comparen dos runs de 48M passos amb el mateix
 pressupost: \textbf{F4-ablació-48M} (PPO + COS congelat, pool fix de sis
-\texttt{AgentRegles}, sense self-play, línia base estesa) i \textbf{F5-selfplay} (pool
-mixt, warm-start des del \texttt{best.zip} de F4-ablació-48M). Les arquitectures i els
+l'agent basat en regles, sense self-play, línia base estesa) i \textbf{F5-selfplay} (pool
+mixt, warm-start des del model seleccionat de F4-ablació-48M). Les arquitectures i els
 hiperparàmetres PPO són idèntics; l'única variable és la composició del pool.
 
 \paragraph{Resultats.} El self-play trenca el compromís entre rendiment i robustesa: F5
@@ -111,7 +111,7 @@ es validen (taula~\ref{tab:fase5-resum}).
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{figures/fase5/fase5_variants.pdf}
-  \caption{Win-rate per variant d'oponent (models \texttt{best.zip}). F4 (blau)
+  \caption{Win-rate per variant d'oponent (models seleccionats). F4 (blau)
            mostra una distribució irregular: alt contra l'estil conservador i equilibrat,
            baix contra l'agressiu i el faroler. F5 (vermell) reequilibra la distribució:
            puja tots els valors baixos al 80--85\% al preu d'abaixar l'estil conservador
@@ -152,7 +152,7 @@ es validen (taula~\ref{tab:fase5-resum}).
     \(\text{metric\_robust}\)              & 59{,}5\% & 73{,}5\% & $+14{,}0$ \\
     \bottomrule
   \end{tabular}
-  \caption{Win-rate per variant del pool: F4-ablació vs F5-selfplay (\texttt{best.zip}).
+  \caption{Win-rate per variant del pool: F4-ablació vs F5-selfplay (models seleccionats).
            El self-play apuja tots els valors baixos i redueix la dispersió; el descens
            contra l'estil conservador és el reequilibri esperat.}
   \label{tab:fase5-variants}
@@ -164,8 +164,7 @@ de F4, molt per sobre del llindar de 86{,}0\%.
 
 \emph{H2 --- millora de la robustesa.} \textbf{Valida.} El pic de
 \(\text{metric\_robust}\) puja de 73{,}2\% a 77{,}8\% (+4{,}6~pp), i el
-\(\text{metric\_robust}\) del \texttt{best.zip} de F5 (73{,}5\%) supera el del
-\texttt{best.zip} de F4 (59{,}5\%) en 14{,}0~punts. La
+\(\text{metric\_robust}\) del model de F5 (73{,}5\%) supera el del model de F4 (59{,}5\%) en 14{,}0~punts. La
 figura~\ref{fig:fase5-variants} mostra el reequilibri: F4 tenia win-rates de
 50--55\% contra els estils agressiu i faroler; F5 els puja al 80--85\%.
 
@@ -211,7 +210,7 @@ té.
 \emph{L'arquitectura NFSP.} S'implementen dos bucles d'optimització en paral·lel sobre
 el mateix \emph{backbone} COS congelat. El \textbf{bucle RL} és el PPO habitual: observa
 l'estat, tria una acció i rep una recompensa. El \textbf{bucle \ac{SL}} entrena la xarxa
-\texttt{AveragePolicyNet} per imitar l'historial de decisions del PPO mitjançant
+\emph{AveragePolicyNet} per imitar l'historial de decisions del PPO mitjançant
 cross-entropy; en paral·lel, el pool d'oponents (NFSPPool) barreja, amb probabilitat
 \(\eta = 0{,}5\), la política mitjana (SL) i els agents del pool de la Fase~5 (regles +
 snapshots). Amb \(\eta = 0{,}5\), la meitat de les partides d'entrenament es juguen
@@ -239,7 +238,7 @@ registra també la \(\text{sl\_loss}\) (cross-entropy del bucle \ac{SL}), que ha
 decreixent per confirmar que la xarxa de política mitjana aprèn.
 
 \emph{Comparació experimental.} El run principal de la Fase~6 (F6-nfsp) s'entrena
-48M passos amb warm-start des del model més robust de la Fase~5 (\texttt{best\_robust.zip}),
+48M passos amb warm-start des del model més robust de la Fase~5,
 per assegurar que el Reservoir Buffer i la política mitjana comencen a nodrir-se d'un
 comportament ja depurat. La comparació directa és amb F5-selfplay.
 
@@ -253,7 +252,7 @@ forma estable (taula~\ref{tab:fase6}).
   \caption{Evolució de la \texttt{metric} (esquerra) i la \texttt{metric\_robust}
            (dreta) per a F5-selfplay (discontínua, referència) i F6-NFSP (sòlida), al
            llarg de 48M passos. La línia puntejada verda marca el \emph{checkpoint}
-           \texttt{best\_nash} (1M passos de F6). F6 assoleix el pic de \texttt{metric}
+           el punt de Nash mínim (1M passos de F6). F6 assoleix el pic de \texttt{metric}
            molt aviat (91{,}0\% @14M) gràcies al warm-start, però oscil·la
            posteriorment; la \texttt{metric\_robust} és comparable a F5.}
   \label{fig:fase6-corbes}
@@ -265,7 +264,7 @@ forma estable (taula~\ref{tab:fase6}).
   \caption{\emph{Nash gap} empíric (\(\text{exploit\_vs\_sl}\)) al llarg de
            l'entrenament de F6. La línia discontínua vermella marca el llindar de~8~pp
            (criteri de H3); la zona verda mostra la zona Nash. El punt destacat
-           correspon al \emph{checkpoint} \texttt{best\_nash} (3{,}3~pp @1M passos),
+           correspon al punt de Nash mínim (3{,}3~pp @1M passos),
            l'únic moment on el sistema toca l'equilibri de forma clara.}
   \label{fig:fase6-nash}
 \end{figure}
@@ -279,11 +278,11 @@ forma estable (taula~\ref{tab:fase6}).
     \texttt{metric} màx   & 89{,}0\% & 89{,}2\% & \textbf{91{,}0\%} \\
     \(\text{metric\_robust}\) màx & 73{,}2\% & \textbf{77{,}8\%} & 75{,}2\% \\
     \(\operatorname{std}_{\text{pool}}\) (final) & 12{,}9\% & \textbf{11{,}9\%} & 13{,}4\% \\
-    \(\text{exploit\_vs\_sl}\) (\texttt{best\_nash}) & — & — & \textbf{3{,}3~pp} \\
+    \(\text{exploit\_vs\_sl}\) (Nash mínim) & — & — & \textbf{3{,}3~pp} \\
     \bottomrule
   \end{tabular}
   \caption{Comparativa F4/F5/F6 (runs de 48M passos). F6 obté la millor \texttt{metric}
-           i assoleix la zona de Nash al \emph{checkpoint} \texttt{best\_nash}, però no
+           i assoleix la zona de Nash al punt de Nash mínim, però no
            redueix la dispersió entre estils.}
   \label{tab:fase6}
 \end{table}
@@ -305,7 +304,7 @@ per convergir en dominis d'observació complexos~\cite{heinrich2016nfsp}.
 figura~\ref{fig:fase6-nash} mostra que la corba d'\texttt{exploit\_vs\_sl} entra a la
 zona Nash (<8~pp) en 25~ocasions a partir del pas~5M, i la freqüència d'aquests
 enfonsaments creix a mesura que la política \ac{SL} madura. No obstant, el
-\emph{checkpoint} \texttt{best\_nash.zip} es va arxivar al pas~1M amb un valor
+punt de Nash mínim es va arxivar al pas~1M amb un valor
 d'\(\text{exploit\_vs\_sl}=3{,}3\)~pp que és espuri per dos motius: l'avaluació només
 juga 15~partides (la resolució mínima possible és justament \(|7/15-50|=3{,}3\)~pp, i
 guanyar 7--8 de 15 és el resultat esperat d'una moneda al 50~\%), i al pas~1M la
@@ -330,7 +329,7 @@ moments diferents de l'entrenament:
         (secció~\ref{sec:checkpoint3}).
 \end{itemize}
 
-L'algorisme \ac{NFSP} genera altres pesos com a la política promig (\texttt{AveragePolicyNet}),
+L'algorisme \ac{NFSP} genera altres pesos com a la política promig (\emph{AveragePolicyNet}),
 és la peça teòricament central de l'algorisme: és la que convergeix cap a l'equilibri de
 Nash i distribueix les accions de manera que cap oponent no la pugui explotar
 sistemàticament. No es considera, però, candidata a desplegament, perquè el seu rendiment
@@ -350,8 +349,7 @@ La Fase~6 produeix dos tipus de pesos per entrenament (\texttt{best.zip} i
 20M~passos}, que n'aporta dos candidats addicionals. Els quatre candidats s'han avaluat
 de forma independent i precisa amb 500~partides balancejades per posició (meitat com a
 mà, meitat com a segon jugador), i cada model s'ha mesurat contra \textbf{el seu propi
-\texttt{sl\_final.pt}} (Fase~6 original \(\to\) \texttt{ppo\_nfsp}; re-run \(\to\)
-\texttt{ppo\_nfsp\_rerun20M}). Aquesta distinció és clau: l'\texttt{exploit\_vs\_sl}
+\texttt{sl\_final.pt}}. Aquesta distinció és clau: l'\texttt{exploit\_vs\_sl}
 mesura quant pot explotar el \ac{PPO} la seva pròpia política \ac{SL}; usar un
 \ac{SL} comú confondria la maduresa del \ac{SL} amb la qualitat del \ac{PPO}
 (taula~\ref{tab:checkpoint3}).

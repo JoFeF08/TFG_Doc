@@ -1,4 +1,4 @@
-%!TeX root=MemoriaTFG.tex
+﻿%!TeX root=MemoriaTFG.tex
 
 \chapter{Entorn d'Aprenentatge per Reforç}
 \label{cap:entorns}
@@ -67,12 +67,12 @@ al capítol~\ref{cap:metodologia}.
 A més d'aquests dos parells, hi ha dues variants especialitzades:
 
 \begin{itemize}
-  \item \textbf{Entorn de sessió} (\texttt{TrucGymEnvSessio}): l'episodi agrupa $N$
+  \item \textbf{Entorn de sessió} (\emph{TrucGymEnvSessio}): l'episodi agrupa $N$
         mans consecutives contra el mateix oponent (per defecte $N=5$), que es
         selecciona del \emph{pool} a l'inici de cada episodi. En no reiniciar l'estat
         entre mans, obliga l'agent a acumular context al llarg de la sessió i li dona
         l'oportunitat de detectar el patró de joc del rival. S'usa a la Fase~4
-        (memòria entre mans amb \texttt{RecurrentPPO}).
+        (memòria entre mans amb \emph{RecurrentPPO}).
 
   \item \textbf{Entorn paral·lel}: executa diverses instàncies de l'entorn per mà en
         processos separats i en recull les trajectòries (amb les recompenses
@@ -103,7 +103,7 @@ Junts representen l'estat observable del joc en 240~dimensions. La funció
 
 \begin{equation}
   \mathbf{o} = \bigl[\,\texttt{obs\_cartes.flatten()}\;\|\;\texttt{obs\_context}\,\bigr]
-  \in \mathbb{R}^{216+24} = \mathbb{R}^{240}
+  \in \mathbb{R}^{216+24} = \mathbb{R}^{240}.
   \label{eq:obs-flat}
 \end{equation}
 
@@ -238,7 +238,7 @@ canvi, la recompensa intermèdia s'extreu i s'aplica directament a cada pas,
 amplificada per un factor~5:
 
 \begin{equation}
-  r_t = \texttt{reward\_intermedis}[\text{equip}] \times 5{,}0
+  r_t = \texttt{reward\_intermedis}[\text{equip}] \times 5{,}0.
   \label{eq:reward-gym}
 \end{equation}
 

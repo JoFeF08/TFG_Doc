@@ -1,4 +1,4 @@
-%!TeX root=MemoriaTFG.tex
+﻿%!TeX root=MemoriaTFG.tex
 
 \section{Bloc 2: representació de l'estat i memòria}
 \label{sec:bloc2}
@@ -13,7 +13,7 @@ s'adopta per a desplegament.
 \label{sec:fase3}
 
 \begin{sloppypar}
-La Fase~3 estudia \texttt{CosMultiInput}, un \emph{feature extractor} convolucional
+La Fase~3 estudia \emph{CosMultiInput}, un \emph{feature extractor} convolucional
 propi, com a alternativa a l'extractor pla per defecte de \ac{SB3}.
 L'estudi respon dues preguntes acoblades: si l'\textbf{arquitectura} convolucional
 aporta valor per si sola (Q1, secció~\ref{sec:fase3-arq}) i si
@@ -34,16 +34,16 @@ estàndard.
 \paragraph{Disseny.}
 
 \emph{L'extractor CosMultiInput.} Per provar la hipòtesi es
-dissenya \texttt{CosMultiInput} (\texttt{RL/models/core/feature\_extractor.py}), un
+dissenya \emph{CosMultiInput}, un
 extractor de dues branques (figura~\ref{fig:cos-multi-input}). La branca \acf{CNN} aplica
 dues convolucions sobre el tensor \((6,4,9)\) (taula~\ref{tab:canals-cartes}): la primera amb nucli \(1\times3\) detecta
 patrons entre rangs consecutius; la segona amb nucli \(3\times3\) integra la informació
 entre pals i rangs, produint 320~dimensions. La branca densa projecta el vector de context
 de 24~dimensions (taula~\ref{tab:context-obs}) a~32. Les dues sortides es concatenen i es projecten a 256~dimensions. La
 sortida coincideix amb l'amplada de la primera capa oculta de la política
-(\texttt{net\_arch=[256,256]}), de manera que \texttt{CosMultiInput} substitueix
-l'extractor per defecte de \ac{SB3} (\texttt{CombinedExtractor}, que simplement aplana
-l'observació) sense cap altre canvi. L'adaptador \texttt{CosMultiInputSB3} (\texttt{RL/%
+(\texttt{net\_arch=[256,256]}), de manera que \emph{CosMultiInput} substitueix
+l'extractor per defecte de \ac{SB3} (\emph{CombinedExtractor}, que simplement aplana
+l'observació) sense cap altre canvi. L'adaptador \emph{CosMultiInputSB3} (\texttt{RL/%
 \allowbreak{}models/\allowbreak{}sb3/\allowbreak{}sb3\_\allowbreak{}features\_%
 \allowbreak{}extractor.py}) fa de pont entre el vector pla i les dues branques.
 
@@ -94,7 +94,7 @@ l'observació) sense cap altre canvi. L'adaptador \texttt{CosMultiInputSB3} (\te
     \draw[arr] (fusio) -- (latent);
   \end{tikzpicture}%
   }
-  \caption{\texttt{CosMultiInput}: arquitectura de dues branques. La branca CNN processa
+  \caption{\emph{CosMultiInput}: arquitectura de dues branques. La branca CNN processa
            el tensor de cartes $(6,4,9)$; la branca lineal el vector de context $(24,)$.
            Les sortides es concatenen i es projecten a un vector latent de 256~dimensions.}
   \label{fig:cos-multi-input}
@@ -173,10 +173,10 @@ preentrenament supervisat, i quin règim (congelat o ajustat) és preferible?
 
 \paragraph{Disseny.}
 
-\emph{El preentrenament supervisat.} La idea és donar al cos \texttt{CosMultiInput}
+\emph{El preentrenament supervisat.} La idea és donar al cos \emph{CosMultiInput}
 una representació útil de les cartes \emph{abans} que comenci l'\ac{AR}, per tal que
 l'agent no hagi de descobrir l'estructura del joc i la política al mateix temps. Per
-aconseguir-ho, s'afegeix temporalment al cos el model \texttt{ModelPreEntrenament}, que
+aconseguir-ho, s'afegeix temporalment al cos el model \emph{ModelPreEntrenament}, que
 hi acobla tres caps de predicció (taula~\ref{tab:caps-preentrenament}): la força de cada
 carta de la mà, la màscara d'accions legals i la puntuació d'envit
 (figura~\ref{fig:sl-preentrenament}).
@@ -236,8 +236,8 @@ i el que es conserva és el coneixement que el cos ha consolidat als seus pesos.
     \texttt{cap\_forces}          & Força de cada carta a la mà & 3  & MSE \\
     \bottomrule
   \end{tabular}
-  \caption{Caps de predicció del \texttt{ModelPreEntrenament} per al preentrenament
-           supervisat del cos \texttt{CosMultiInput}.}
+  \caption{Caps de predicció del \emph{ModelPreEntrenament} per al preentrenament
+           supervisat del cos \emph{CosMultiInput}.}
   \label{tab:caps-preentrenament}
 \end{table}
 
@@ -308,29 +308,29 @@ que manté estat entre mans, i un \emph{pool} de sis variants d'oponent
 \paragraph{Disseny.}
 
 \emph{El pool d'oponents.} En lloc d'un oponent fix, l'agent s'entrena contra sis variants
-d'\texttt{AgentRegles} amb estils contrastats (taula~\ref{tab:pool-variants}). La diversitat
+de l'agent basat en regles amb estils contrastats (taula~\ref{tab:pool-variants}). La diversitat
 és deliberada: amb un únic oponent existiria una política mitjana òptima que un agent sense
 memòria podria memoritzar; amb sis estils clarament diferents no n'hi ha cap, de manera que
 l'única manera de jugar bé contra tots és \emph{detectar} qui es té al davant i adaptar-s'hi.
 
 \emph{Sessions multi-mà.} Per donar marge a aquesta adaptació, l'episodi d'\ac{AR} deixa de
 ser una mà i passa a ser una \emph{sessió} de \(N=5\) mans consecutives contra el mateix
-oponent. El nou entorn \texttt{TrucGymEnvSessio} envolta \texttt{TrucGymEnvMa} i
+oponent. El nou entorn \emph{TrucGymEnvSessio} envolta \texttt{TrucGymEnvMa} i
 \emph{intercepta} els senyals de final (\texttt{terminated}) intermedis, de manera que
 l'estat de l'\ac{LSTM} no es reinicia fins al final de les cinc mans; al començament de cada
 sessió es mostreja un oponent nou del pool.
 
 \emph{L'arquitectura amb memòria.} La cadena de processament és
 obs(240)~$\rightarrow$~COS congelat(256)~$\rightarrow$~\ac{LSTM}(256)~$\rightarrow$~\ac{MLP}
-lleuger~$\rightarrow$~caps de política i valor. S'usa \texttt{RecurrentPPO} (de
-\texttt{sb3\_contrib}) amb \emph{retropropagació en el temps truncada}
+lleuger~$\rightarrow$~caps de política i valor. S'usa \emph{RecurrentPPO} (de
+\emph{sb3-contrib}) amb \emph{retropropagació en el temps truncada}
 (secció~\ref{sec:recurrencia}) sobre seqüències, on el \texttt{batch\_size} es mesura en seqüències
 i no en transicions individuals. No s'usa \acs{DRQN} (l'anàleg basat en la funció de valor)
 perquè requeriria un \emph{replay buffer} seqüencial no disponible a \ac{SB3}.
 
 \emph{Pressupost i avaluació.} Es comparen dos runs nous amb les línies base de la Fase~3.5:
 \textbf{F4-ablació} (PPO + COS congelat + pool, sense memòria) i \textbf{F4-complet}
-(\texttt{RecurrentPPO} amb \ac{LSTM} sobre el COS congelat + pool); la primera comparació
+(\emph{RecurrentPPO} amb \ac{LSTM} sobre el COS congelat + pool); la primera comparació
 aïlla l'efecte del pool i la segona, l'efecte de la memòria. Cada run nou s'entrena 12M
 passos, la meitat que a la Fase~3.5, perquè la retropropagació en el temps encareix molt el
 còmput. L'avaluació, a més de la \texttt{metric} habitual, acumula el win-rate \emph{per
@@ -435,7 +435,7 @@ Tancades les Fases~3 i~4, el model que s'adopta per a desplegament és \textbf{F
 i cost.
 
 La raó principal és la \textbf{robustesa davant estils diversos}. F4-ablació s'ha entrenat
-contra les sis variants d'\texttt{AgentRegles}, de manera que la seva política és
+contra les sis variants de l'agent basat en regles, de manera que la seva política és
 generalista; les millors línies base de la Fase~3.5 (DQN i PPO frozen) van entrenar sempre
 contra un oponent fix i no s'han enfrontat a aquesta diversitat. En un context de
 desplegament real, on l'oponent és desconegut, aquesta generalitat és més valuosa que uns

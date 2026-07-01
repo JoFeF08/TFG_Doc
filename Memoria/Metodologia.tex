@@ -1,4 +1,4 @@
-%!TeX root=MemoriaTFG.tex
+﻿%!TeX root=MemoriaTFG.tex
 
 \chapter{Metodologia d'Entrenament}
 \label{cap:metodologia}
@@ -35,8 +35,8 @@ a cada fase.
 
 El rendiment d'un agent es mesura amb la funció \texttt{evaluar\_agent()}, que juga un
 nombre fix de partides senceres contra dos oponents de referència: 100~partides contra
-un agent aleatori (\texttt{RandomAgent}) i 100~partides contra l'agent de regles
-(\texttt{AgentRegles}). Per evitar el biaix posicional (ser \emph{mà} dona un lleuger
+un agent aleatori (l'agent aleatori) i 100~partides contra l'agent basat en regles
+(l'agent basat en regles). Per evitar el biaix posicional (ser \emph{mà} dona un lleuger
 avantatge), l'agent alterna la seva posició (jugador~0 i jugador~1) en partides
 consecutives. L'avaluació es fa cada 500\,000~passos d'entrenament i sempre sobre
 \textbf{partides senceres}, encara que l'agent s'estigui entrenant sobre mans
@@ -57,13 +57,13 @@ s'ha entrenat l'agent, i per això permet comparar qualsevol parella d'algorisme
 igualtat de condicions. La mètrica combina el win-rate contra dos oponents complementaris:
 
 \begin{equation}
-  \text{metric} = 0{,}25 \cdot \text{wr}_{\text{random}} + 0{,}75 \cdot \text{wr}_{\text{regles}}
+  \text{metric} = 0{,}25 \cdot \text{wr}_{\text{random}} + 0{,}75 \cdot \text{wr}_{\text{regles}}.
   \label{eq:metric}
 \end{equation}
 
-Cada terme compleix una funció diferent. L'\texttt{AgentRegles} (pes 0{,}75) és l'oponent
+Cada terme compleix una funció diferent. L'l'agent basat en regles (pes 0{,}75) és l'oponent
 \textbf{discriminant}: batre una heurística coherent requereix estratègia real, de manera
-que aquest terme és el que captura la qualitat de l'agent. El \texttt{RandomAgent}
+que aquest terme és el que captura la qualitat de l'agent. L'agent aleatori
 (pes 0{,}25) actua com a \textbf{xarxa de seguretat}: guanyar-li és trivial, però un agent
 que no hi guanyi de manera clara revela un col·lapse de la política (per exemple, una
 política degenerada que repeteix sempre la mateixa acció). Aquest terme detecta
@@ -73,9 +73,9 @@ terme aleatori aporta un sòl d'estabilitat. Les fases avançades (5 i 6) introd
 mètriques addicionals de robustesa i explotabilitat, que es defineixen al bloc
 corresponent.
 
-\subsection*{L'oponent de referència: l'agent de regles}
+\subsection*{L'oponent de referència: l'agent basat en regles}
 
-L'\texttt{AgentRegles} (\texttt{RL/models/model\_propi/agent\_regles.py}) és un agent
+L'agent basat en regles és un agent
 heurístic codificat a mà que serveix alhora com a oponent d'entrenament i d'avaluació.
 No té cap xarxa neuronal: la seva política prové d'heurístiques amb llindars adaptatius
 sobre la força de la mà, els punts d'envit i el marcador.
@@ -111,7 +111,7 @@ deliberada i essencial. Un oponent purament determinista seria fàcilment explot
 l'agent d'\ac{AR} aprendria a predir-ne les respostes fixes i el batria de manera
 artificial, inflant la mètrica sense reflectir cap habilitat real (\emph{reward hacking}
 contra un oponent fix). El soroll obliga l'agent entrenat a generalitzar i fa de
-l'\texttt{AgentRegles} una barrera molt més exigent del que sembla.
+l'agent basat en regles una barrera molt més exigent del que sembla.
 
 \paragraph{El pool de variants.} A partir de la Fase~4, els quatre paràmetres es
 modifiquen per generar sis \textbf{variants} amb estils de joc contrastats, que formen un
@@ -134,7 +134,7 @@ valors neutres descrits més amunt.
     Faroler     & 1{,}3 & 1{,}3 & 0{,}40 & 1{,}3 \\
     \bottomrule
   \end{tabular}
-  \caption{Les sis variants de l'\texttt{AgentRegles} que formen el \emph{pool}
+  \caption{Les sis variants de l'agent basat en regles que formen el \emph{pool}
            d'oponents (Fases 4--6). La variant equilibrada (primera fila) reprodueix el
            comportament per defecte usat a les fases 1--3.}
   \label{tab:pool-variants}
