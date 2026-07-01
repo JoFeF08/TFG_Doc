@@ -48,7 +48,7 @@ es mesura el rendiment sota dues òptiques complementàries:
   \item \textbf{Per passos} (5~milions): la qualitat assolida després del mateix nombre de
         passos d'entrenament (eficiència per mostra).
   \item \textbf{Per temps real} (4~hores per agent): la qualitat assolida amb el mateix
-        pressupost temporal (rendiment efectiu segons el \emph{throughput}).
+        pressupost temporal (rendiment efectiu segons la velocitat d'entrenament).
 \end{itemize}
 
 \emph{Oponents.} Cada agent s'entrena contra una barreja d'oponents
@@ -95,7 +95,7 @@ de la d'entrenament.
 62{,}8\% per passos i 58{,}5\% per temps), però pateix una degradació severa cap al final
 de l'entrenament (de 62{,}8\% a 36{,}5\%): la seva millor mètrica és molt superior a la
 final. PPO-SB3 és el més feble a igualtat de passos (29{,}5\%), perquè un algorisme
-on-policy necessita molts més passos per estabilitzar-se, però té un \emph{throughput}
+on-policy necessita molts més passos per estabilitzar-se, però té una velocitat d'entrenament
 incomparable (taula~\ref{tab:fase1-throughput}): genera 36{,}5~milions de passos per hora,
 28~vegades més que NFSP. Aquest contrast fa que el rànquing canviï entre les dues òptiques.
 El patró comú a tots els agents és la \textbf{inestabilitat}: regredeixen cap al final de
@@ -116,8 +116,9 @@ proporciona un senyal d'aprenentatge prou estable.
     PPO-SB3     & 29{,}5\% & 18{,}5\% & 42{,}0\% & 21{,}2\% \\
     \bottomrule
   \end{tabular}
-  \caption{\texttt{metric} de la Fase~1 sota les dues òptiques. «Millor» és el pic durant
-           l'entrenament; «Final» és el valor en acabar, que evidencia la inestabilitat.}
+  \caption{Win-rate ponderat (\(\text{metric}\)) de la Fase~1 sota les dues òptiques.
+           «Millor» és el pic durant l'entrenament; «Final» és el valor en acabar, que
+           evidencia la inestabilitat.}
   \label{tab:fase1-resultats}
 \end{table}
 
@@ -133,8 +134,8 @@ proporciona un senyal d'aprenentatge prou estable.
     NFSP-RLCard & 1{,}3\,M  & 1$\times$ \\
     \bottomrule
   \end{tabular}
-  \caption{\emph{Throughput} dels quatre algorismes. El paral·lelisme de PPO-SB3 el fa
-           28~vegades més ràpid que NFSP-RLCard.}
+  \caption{Velocitat d'entrenament dels quatre algorismes. El paral·lelisme de PPO-SB3 el
+           fa 28~vegades més ràpid que NFSP-RLCard.}
   \label{tab:fase1-throughput}
 \end{table}
 
@@ -146,7 +147,7 @@ proporciona un senyal d'aprenentatge prou estable.
            mostra); a la dreta, rendiment al llarg de 4~hores de còmput per agent
            (rendiment efectiu). DQN-SB3 lidera en ambdues, però el rànquing
            de la resta canvia: PPO-SB3 és el pitjor per passos però supera
-           DQN-RLCard i NFSP-RLCard per temps gràcies al seu \emph{throughput}.}
+           DQN-RLCard i NFSP-RLCard per temps gràcies a la seva velocitat d'entrenament.}
   \label{fig:fase1-corbes-ts}
 \end{figure}
 
@@ -249,7 +250,8 @@ d'ampolla passa a ser la transferència, no l'aprenentatge inicial.
     \bottomrule
   \end{tabular}
   \caption{Comparació a 12M passos (mateix pressupost, avaluació sobre partides). El
-           valor \texttt{metric} entrenant sobre mans és uniformement superior.}
+           win-rate ponderat (\(\text{metric}\)) entrenant sobre mans és uniformement
+           superior.}
   \label{tab:fase2-12m}
 \end{table}
 
@@ -308,7 +310,7 @@ queda validat com a tècnica clau per a PPO-SB3.
 \label{sec:checkpoint1}
 
 Tancades les Fases~1 i~2, cal decidir quins dels quatre models continuen a la resta del
-treball. El criteri combina el rendiment (\texttt{metric}) i el cost d'entrenament, i el
+treball. El criteri combina el rendiment (\(\text{metric}\)) i el cost d'entrenament, i el
 resultat és clar: avancen els dos agents \ac{SB3} i es descarten els dos de RLCard.
 
 \textbf{PPO-SB3} és el gran beneficiari del curriculum i passa a ser el \emph{baseline} de
@@ -316,8 +318,8 @@ referència. Del 35\% puja al 75\% amb el curriculum complet (el millor resultat
 fins aleshores) i és el millor aprenent sobre mans (87,2\%), amb aproximadament la meitat
 del cost de DQN-SB3 ($\sim$40~min davant de $\sim$5,5~h per execució). La seva narrativa
 resumeix la lliçó del bloc: PPO no tenia un problema de capacitat sinó de senyal
-d'aprenentatge, i el curriculum el resol. El seu \emph{throughput} excel·lent permet, a
-més, iterar ràpidament a les fases següents. \textbf{DQN-SB3} es manté com a \emph{baseline}
+d'aprenentatge, i el curriculum el resol. La seva velocitat d'entrenament excel·lent
+permet, a més, iterar ràpidament a les fases següents. \textbf{DQN-SB3} es manté com a \emph{baseline}
 robust: és el millor sobre partides sense curriculum (60,5\%), té un sostre del 86,2\% sobre
 mans i representa la família dels algorismes basats en la funció de valor, el contrapunt
 natural a PPO; el
@@ -327,5 +329,5 @@ següents.
 Es descarten, en canvi, els dos agents de RLCard. \textbf{DQN-RLCard} pateix un oblit
 catastròfic sever al \emph{finetune} (col·lapsa al 22\%) i és consistentment inferior a
 DQN-SB3 en tots els experiments. \textbf{NFSP-RLCard} és l'algorisme més lent
-($\sim$17~h per execució), no supera el 60\% de \texttt{metric} i no mostra cap
+($\sim$17~h per execució), no supera el 60\% de \(\text{metric}\) i no mostra cap
 escalabilitat amb més còmput: el benefici és massa modest per al cost.

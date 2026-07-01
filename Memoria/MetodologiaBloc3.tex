@@ -7,7 +7,7 @@ El model seleccionat al Checkpoint~2 (F4-ablació: PPO + COS congelat + pool) mo
 defecte estructural: ha convergit a una política quasi-determinista especialitzada en
 explotar els patrons fixos de les sis variants de l'agent basat en regles. Contra un oponent
 que varia l'estil, aquesta especialització es converteix en una debilitat. A més, la
-\texttt{metric} clàssica (win-rate ponderat) no detecta el problema, perquè promitja el
+\(\text{metric}\) clàssica (win-rate ponderat) no detecta el problema, perquè promitja el
 rendiment entre variants i amaga la variança. El tercer bloc ataca el problema des de dues
 bandes: la Fase~5 introdueix mètriques d'explotabilitat i un \emph{self-play} mixt
 inspirat en el \acf{FSP} per reduir la predictibilitat; la Fase~6 afegeix el
@@ -23,7 +23,7 @@ de l'agent basat en regles amb \emph{snapshots} del propi agent (\ac{FSP}
 simplificat) reduir l'explotabilitat sense degradar el rendiment global? Les hipòtesis
 concretes són:
 \begin{itemize}
-  \item \textbf{H1}: el self-play no degrada la \texttt{metric} clàssica respecte a la
+  \item \textbf{H1}: el self-play no degrada la \(\text{metric}\) clàssica respecte a la
         línia base extesa (F4-ablació-48M): \(\text{metric}_{F5} \geq \text{metric}_{F4} - 3\)~pp.
   \item \textbf{H2}: la robustesa inter-estil (\(\text{metric\_robust}\)) millora
         respecte a F4-ablació.
@@ -33,7 +33,7 @@ concretes són:
 
 \paragraph{Disseny.}
 
-\emph{El problema de l'explotabilitat.} La \texttt{metric} clàssica amaga la variança
+\emph{El problema de l'explotabilitat.} La \(\text{metric}\) clàssica amaga la variança
 de rendiment entre estils d'oponent. Un agent pot obtenir un 95\% contra una variant
 conservadora i un 60\% contra una farolera, i mostrar igualment una mètrica aparentment
 bona. Per quantificar la robustesa s'introdueixen dues mètriques complementàries. La
@@ -94,16 +94,16 @@ mixt, warm-start des del model seleccionat de F4-ablació-48M). Les arquitecture
 hiperparàmetres PPO són idèntics; l'única variable és la composició del pool.
 
 \paragraph{Resultats.} El self-play trenca el compromís entre rendiment i robustesa: F5
-manté la \texttt{metric} clàssica i alhora millora molt la robustesa. Les tres hipòtesis
+manté la \(\text{metric}\) clàssica i alhora millora molt la robustesa. Les tres hipòtesis
 es validen (taula~\ref{tab:fase5-resum}).
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{figures/fase5/fase5_corbes.pdf}
-  \caption{Evolució de la \texttt{metric} (esquerra) i la \texttt{metric\_robust}
+  \caption{Evolució de la \(\text{metric}\) (esquerra) i la \(\text{metric\_robust}\)
            (dreta) al llarg de 48M passos. Línia discontínua: F4-ablació-48M (sense
-           self-play); línia sòlida: F5-selfplay. La \texttt{metric} és pràcticament
-           idèntica (H1), però la \texttt{metric\_robust} de F5 creix de forma sostenuda
+           self-play); línia sòlida: F5-selfplay. La \(\text{metric}\) és pràcticament
+           idèntica (H1), però la \(\text{metric\_robust}\) de F5 creix de forma sostenuda
            i supera àmpliament la de F4 (H2).}
   \label{fig:fase5-corbes}
 \end{figure}
@@ -123,14 +123,14 @@ es validen (taula~\ref{tab:fase5-resum}).
   \centering
   \begin{tabular}{lrrrr}
     \toprule
-    Run & Pic \texttt{metric} & Step & Pic \(\text{metric\_robust}\) & \(\text{exploit\_sp}\) \\
+    Run & Pic \(\text{metric}\) & Step & Pic \(\text{metric\_robust}\) & \(\text{exploit\_sp}\) \\
     \midrule
     F4-ablació-48M & 89{,}0\% & 24M & 73{,}2\% & — \\
     F5-selfplay    & \textbf{89{,}2\%} & 41{,}5M & \textbf{77{,}8\%} & 4{,}7~pp \\
     \bottomrule
   \end{tabular}
   \caption{Resum de la Fase~5 (pressupost de 48M passos). F5 iguala la
-           \texttt{metric} clàssica i supera la robustesa en 4{,}6~punts.}
+           \(\text{metric}\) clàssica i supera la robustesa en 4{,}6~punts.}
   \label{tab:fase5-resum}
 \end{table}
 
@@ -158,7 +158,7 @@ es validen (taula~\ref{tab:fase5-resum}).
   \label{tab:fase5-variants}
 \end{table}
 
-\emph{H1 --- \texttt{metric} sense degradació.} \textbf{Valida.} F5 assoleix
+\emph{H1 --- \(\text{metric}\) sense degradació.} \textbf{Valida.} F5 assoleix
 89{,}2\% (figura~\ref{fig:fase5-corbes}, esquerra), pràcticament idèntic al 89{,}0\%
 de F4, molt per sobre del llindar de 86{,}0\%.
 
@@ -249,12 +249,12 @@ forma estable (taula~\ref{tab:fase6}).
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{figures/fase6/fase6_corbes.pdf}
-  \caption{Evolució de la \texttt{metric} (esquerra) i la \texttt{metric\_robust}
+  \caption{Evolució de la \(\text{metric}\) (esquerra) i la \(\text{metric\_robust}\)
            (dreta) per a F5-selfplay (discontínua, referència) i F6-NFSP (sòlida), al
            llarg de 48M passos. La línia puntejada verda marca el \emph{checkpoint}
-           el punt de Nash mínim (1M passos de F6). F6 assoleix el pic de \texttt{metric}
+           el punt de Nash mínim (1M passos de F6). F6 assoleix el pic de \(\text{metric}\)
            molt aviat (91{,}0\% @14M) gràcies al warm-start, però oscil·la
-           posteriorment; la \texttt{metric\_robust} és comparable a F5.}
+           posteriorment; la \(\text{metric\_robust}\) és comparable a F5.}
   \label{fig:fase6-corbes}
 \end{figure}
 
@@ -275,20 +275,20 @@ forma estable (taula~\ref{tab:fase6}).
     \toprule
     Mètrica & F4-ablació & F5-selfplay & F6-NFSP \\
     \midrule
-    \texttt{metric} màx   & 89{,}0\% & 89{,}2\% & \textbf{91{,}0\%} \\
+    \(\text{metric}\) màx   & 89{,}0\% & 89{,}2\% & \textbf{91{,}0\%} \\
     \(\text{metric\_robust}\) màx & 73{,}2\% & \textbf{77{,}8\%} & 75{,}2\% \\
     \(\operatorname{std}_{\text{pool}}\) (final) & 12{,}9\% & \textbf{11{,}9\%} & 13{,}4\% \\
     \(\text{exploit\_vs\_sl}\) (Nash mínim) & — & — & \textbf{3{,}3~pp} \\
     \bottomrule
   \end{tabular}
-  \caption{Comparativa F4/F5/F6 (runs de 48M passos). F6 obté la millor \texttt{metric}
+  \caption{Comparativa F4/F5/F6 (runs de 48M passos). F6 obté la millor \(\text{metric}\)
            i assoleix la zona de Nash al punt de Nash mínim, però no
            redueix la dispersió entre estils.}
   \label{tab:fase6}
 \end{table}
 
 \emph{H1 --- sense regressió.} \textbf{Valida.} F6 assoleix el 91{,}0\% de
-\texttt{metric} als 14M passos, +1{,}8~pp sobre F5. El warm-start des del model robust
+\(\text{metric}\) als 14M passos, +1{,}8~pp sobre F5. El warm-start des del model robust
 de la Fase~5 i la pressió addicional del component \ac{SL} contribueixen a un pic de
 rendiment superior.
 
@@ -318,7 +318,7 @@ tots dos instàncies de la xarxa de millor resposta (\ac{PPO} Policy Net) preses
 moments diferents de l'entrenament:
 
 \begin{itemize}
-  \item \textbf{\texttt{best.zip}} (\texttt{metric} màxima): el model que millor
+  \item \textbf{\texttt{best.zip}} (\(\text{metric}\) màxima): el model que millor
         rendiment brut obté contra el pool (91{,}0\% @14M passos). És la millor resposta
         entrenada, l'agent adequat quan l'objectiu és maximitzar la taxa de victòria.
   \item \textbf{\texttt{best\_nash.zip}} (Nash gap mínim): el \emph{checkpoint}
@@ -358,7 +358,7 @@ mesura quant pot explotar el \ac{PPO} la seva pròpia política \ac{SL}; usar un
   \centering
   \begin{tabular}{lcccc}
     \toprule
-    Model & \texttt{wr\_pool\_mean} & \texttt{metric\_robust} & \(\sigma_{\text{pool}}\) & \texttt{exploit\_vs\_sl} \\
+    Model & \texttt{wr\_pool\_mean} & \(\text{metric\_robust}\) & \(\sigma_{\text{pool}}\) & \texttt{exploit\_vs\_sl} \\
     \midrule
     \texttt{best\_f6}         & 69{,}1\% & 67{,}2\% & 3{,}9 & 11{,}4~pp \\
     \texttt{best\_nash\_f6}   & 68{,}1\% & 65{,}6\% & 4{,}9 & 10{,}6~pp \\
@@ -404,9 +404,9 @@ molt per sota del llindar de 8~pp.
 
 \emph{Decisió de desplegament.} El criteri primari és el Nash gap
 (\(\text{exploit\_vs\_sl} < 8\)~pp); el secundari (desempat) és la màxima
-\texttt{metric\_robust}. Els dos candidats F6 queden descartats (11{,}4 i 10{,}6~pp).
+\(\text{metric\_robust}\). Els dos candidats F6 queden descartats (11{,}4 i 10{,}6~pp).
 Ambdós candidats del re-run passen el criteri Nash (1{,}8~pp cadascun); el desempat per
-\texttt{metric\_robust} selecciona \textbf{\texttt{best\_nash\_rerun}}
+\(\text{metric\_robust}\) selecciona \textbf{\texttt{best\_nash\_rerun}}
 (69{,}7\% vs.\ 68{,}2\%, \(\sigma\) 4{,}0 vs.\ 4{,}3). S'adopta com a \textbf{model
 de desplegament}.
 

@@ -115,7 +115,7 @@ comparen tots tres:
 \emph{Comparació experimental.} Per a cada protocol i agent es compara la variant COS (amb
 pesos aleatoris) amb la variant \ac{MLP}, amb 24~milions de passos cada combinació i la
 mateixa distribució d'oponents que la Fase~2 (10\% Random + 90\% Regles). Això suposa sis
-runs nous amb COS i dos amb \ac{MLP} sobre mans; les quatre sèries \ac{MLP} de control i
+entrenements nous amb COS i dos amb \ac{MLP} sobre mans; les quatre sèries \ac{MLP} de control i
 curriculum es reutilitzen de la Fase~2 per no reentrenar-les.
 
 \paragraph{Resultats.} El COS amb pesos aleatoris no supera sistemàticament el \ac{MLP}
@@ -144,14 +144,14 @@ de mans amb una representació prou rica i la \ac{CNN} no hi aporta res addicion
     Mans       & PPO-SB3 & 89{,}0\% & 87{,}2\% & $+1{,}8$ \\
     \bottomrule
   \end{tabular}
-  \caption{Pic de \texttt{metric} (24M passos) per a COS amb pesos aleatoris vs \ac{MLP}.}
+  \caption{Pic de \(\text{metric}\) (24M passos) per a COS amb pesos aleatoris vs \ac{MLP}.}
   \label{tab:fase3}
 \end{table}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{figures/fase3/fase3_cos_vs_mlp.pdf}
-  \caption{Pic de \texttt{metric} (24M passos) per protocol i agent, COS amb pesos
+  \caption{Pic de \(\text{metric}\) (24M passos) per protocol i agent, COS amb pesos
            aleatoris vs \ac{MLP}. La línia discontínua marca el 80\%. El COS només supera
            clarament el \ac{MLP} al control de DQN-SB3; al protocol de mans (el millor en
            absolut) la diferència és marginal.}
@@ -163,7 +163,7 @@ amb pesos aleatoris no arrenca amb cap avantatge representacional, la pregunta n
 si \emph{inicialitzar-lo} amb coneixement previ del joc canvia el resultat. Això motiva la
 subsubsecció següent.
 
-\subsubsection{Inicialització supervisada del cos}
+\subsubsection{Inicialització supervisada del COS}
 \label{sec:fase3-init}
 
 \paragraph{Hipòtesi.} Un cos preentrenat que ja distingeix rang, pal i força de les
@@ -279,7 +279,7 @@ entre 87--89\%, de manera que el preentrenament hi aporta poc.
     Finetune             & 88{,}5\% & 88{,}0\% \\
     \bottomrule
   \end{tabular}
-  \caption{Pic de \texttt{metric} (protocol mans, 24M passos) per als quatre règims
+  \caption{Pic de \(\text{metric}\) (protocol mans, 24M passos) per als quatre règims
            d'inicialització del cos.}
   \label{tab:fase35}
 \end{table}
@@ -328,34 +328,35 @@ lleuger~$\rightarrow$~caps de política i valor. S'usa \emph{RecurrentPPO} (de
 i no en transicions individuals. No s'usa \acs{DRQN} (l'anàleg basat en la funció de valor)
 perquè requeriria un \emph{replay buffer} seqüencial no disponible a \ac{SB3}.
 
-\emph{Pressupost i avaluació.} Es comparen dos runs nous amb les línies base de la Fase~3.5:
+\emph{Pressupost i avaluació.} Es comparen dos entrenaments nous amb les línies base de la Fase~3.5:
 \textbf{F4-ablació} (PPO + COS congelat + pool, sense memòria) i \textbf{F4-complet}
 (\emph{RecurrentPPO} amb \ac{LSTM} sobre el COS congelat + pool); la primera comparació
-aïlla l'efecte del pool i la segona, l'efecte de la memòria. Cada run nou s'entrena 12M
+aïlla l'efecte del pool i la segona, l'efecte de la memòria. Cada entrenament nou s'entrena 12M
 passos, la meitat que a la Fase~3.5, perquè la retropropagació en el temps encareix molt el
-còmput. L'avaluació, a més de la \texttt{metric} habitual, acumula el win-rate \emph{per
+còmput. L'avaluació, a més del win-rate ponderat (\(\text{metric}\)) habitual, acumula el
+win-rate \emph{per
 posició dins la sessió} (de la mà~1 a la~5) per detectar si l'agent millora a mesura que
 coneix l'oponent.
 
 \paragraph{Resultats.} Cap de les tres hipòtesis es valida plenament
 (taula~\ref{tab:fase4}). Les figures~\ref{fig:fase4-corbes} i~\ref{fig:fase4-barplot}
-mostren l'evolució i els pics de \texttt{metric}; la figura~\ref{fig:fase4-adaptacio}
+mostren l'evolució i els pics del win-rate ponderat (\(\text{metric}\)); la figura~\ref{fig:fase4-adaptacio}
 detalla el win-rate per posició dins la sessió, clau per a H2.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.82\textwidth]{figures/fase4/fase4_corbes.pdf}
-  \caption{Evolució de la \texttt{metric} al llarg de l'entrenament per als quatre runs de
-           la Fase~4, tallats a 12M passos. Línies discontínues: línies base de la Fase~3.5
-           (sense pool); línies sòlides: runs amb pool; gruix addicional: model amb
-           \ac{LSTM}. La línia puntejada gris marca el 85\%.}
+  \caption{Evolució del win-rate ponderat (\(\text{metric}\)) al llarg de l'entrenament
+           per als quatre entrenaments de la Fase~4, tallats a 12M passos. Línies discontínues:
+           línies base de la Fase~3.5 (sense pool); línies sòlides: entrenaments amb pool; gruix
+           addicional: model amb \ac{LSTM}. La línia puntejada gris marca el 85\%.}
   \label{fig:fase4-corbes}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{figures/fase4/fase4_barplot.pdf}
-  \caption{Pic de \texttt{metric} per a cada run, tots tallats al pressupost comú de 12M
+  \caption{Pic de \(\text{metric}\) per a cada run, tots tallats al pressupost comú de 12M
            passos. DQN~frozen assoleix 87{,}8\% dins el pressupost; el seu pic global és
            91{,}2\% a 23M passos.}
   \label{fig:fase4-barplot}
@@ -374,7 +375,7 @@ detalla el win-rate per posició dins la sessió, clau per a H2.
   \centering
   \begin{tabular}{llrr}
     \toprule
-    Run & Memòria & Pic \texttt{metric} (12M) & Temps \\
+    Run & Memòria & Pic \(\text{metric}\) (12M) & Temps \\
     \midrule
     DQN frozen (F3.5) & No            & 87{,}8\% & — \\
     PPO frozen (F3.5) & No            & 89{,}5\% & 0{,}33~h \\
@@ -388,7 +389,7 @@ detalla el win-rate per posició dins la sessió, clau per a H2.
 \end{table}
 
 \emph{H1: l'\ac{LSTM} millora el rendiment global.} \textbf{No es valida.}
-F4-complet assoleix un 82{,}0\% de \texttt{metric}, \emph{4~punts per sota} de F4-ablació
+F4-complet assoleix un 82{,}0\% de \(\text{metric}\), \emph{4~punts per sota} de F4-ablació
 (86{,}0\%), que entrena amb el mateix pool però sense memòria. A igual pressupost (12M
 passos), la memòria no aporta cap guany global i a més eleva el cost computacional 46$\times$
 (15{,}2~h vs 0{,}33~h).
@@ -405,7 +406,7 @@ valida.} F4-ablació (86{,}0\%) queda 3{,}5~punts sota PPO frozen (89{,}5\%), ju
 límit del criteri $\pm3$~punts. El pool dificulta lleugerament la convergència sense
 memòria, però el delta és prou petit per no descartar la configuració.
 
-La causa subjacent del fracàs de H1 i H2 és el \textbf{desajust entre entrenament i
+La causa subjacent del fracàs de H1 i H2 podria ser el \textbf{desajust entre entrenament i
 avaluació}: s'entrena sobre sessions de 5~mans (${\sim}50$~passos), però s'avalua sobre
 sessions de 5~partides senceres (${\sim}500$~passos), un context deu vegades més llarg que
 la xarxa no ha vist mai. S'hi sumen el pressupost reduït (12M vs 24M de les línies base)
@@ -449,6 +450,6 @@ contra un oponent fix i no s'ha provat contra el pool; per això no es tria. . F
 descartada: un cost 46$\times$ superior i un rendiment 4~punts inferior no compensen, i cap
 de les seves hipòtesis s'ha validat.
 
-Aquesta robustesa, però, encara no s'ha \emph{quantificat}: la \texttt{metric} clàssica
+Aquesta robustesa, però, encara no s'ha quantificat: la \(\text{metric}\) clàssica
 promitja entre oponents i pot amagar debilitats davant estils concrets. Mesurar-la i
 millorar-la és l'objectiu del Bloc~3.
