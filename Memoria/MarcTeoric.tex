@@ -1,4 +1,4 @@
-%!TeX root=MemoriaTFG.tex
+﻿%!TeX root=MemoriaTFG.tex
 
 \chapter{Fonaments Teòrics i Treball Relacionat}
 \label{cap:marc}
@@ -306,15 +306,14 @@ en Minimització del Penediment Contra-factual (\emph{Counterfactual Regret
 Minimization}, CFR), que han assolit rendiment sobrehumà de forma
 consistent~\cite{brown2018libratus,brown2019pluribus}.
 
-\textbf{Libratus}~\cite{brown2018libratus} (Brown \& Sandholm, 2017) guanya
-jugadors professionals de Texas Hold'em de dos jugadors. CFR minimitza
+El 2017, Brown i Sandholm~\cite{brown2018libratus} presentaren \textbf{Libratus},
+que guanya jugadors professionals de Texas Hold'em de dos jugadors. CFR minimitza
 iterativament el penediment contra-factual (la millora hipotètica si s'hagués
 pres una acció diferent) i convergeix a l'equilibri de Nash. Libratus resol
 sub-jocs en temps real per refinar la seva estratègia durant la partida.
 
-Dos anys més tard, els mateixos autors proposaren
-\textbf{Pluribus}~\cite{brown2019pluribus} (Brown \& Sandholm, 2019) estén
-aquest resultat al pòquer de sis jugadors combinant Monte Carlo CFR, una
+El 2019, els mateixos autors proposaren \textbf{Pluribus}~\cite{brown2019pluribus},
+que estén aquest resultat al pòquer de sis jugadors combinant Monte Carlo CFR, una
 estratègia de base (\emph{blueprint}) obtinguda per self-play i la resolució
 de sub-jocs en temps real. Pluribus fou la primera \ac{IA} a superar humans en
 un entorn multi-jugador d'informació parcial.
@@ -344,13 +343,13 @@ self-play. La taula~\ref{tab:comparativa-algorismes} ofereix una visió de conju
   \centering
   \caption{Característiques principals dels algorismes d'\acs{AR} emprats al treball.}
   \label{tab:comparativa-algorismes}
-  \begin{tabular}{lllll}
+  \begin{tabular}{llll}
     \toprule
-    \textbf{Algorisme} & \textbf{Família} & \textbf{On/Off-policy} & \textbf{Memòria} & \textbf{Ref.} \\
+    \textbf{Algorisme} & \textbf{Família} & \textbf{On/Off-policy} & \textbf{Memòria} \\
     \midrule
-    \acs{DQN}  & Aprox.\ funcions de valor & Off-policy & Experience replay  & \cite{mnih2015dqn}      \\
-    \acs{PPO}  & Actor-crític              & On-policy  & Cap                & \cite{schulman2017ppo}  \\
-    \acs{NFSP} & Fictitious self-play      & Tots dos   & Reservoir buffer   & \cite{heinrich2016nfsp} \\
+    \acs{DQN}~\cite{mnih2015dqn}      & Aprox.\ funcions de valor & Off-policy & Experience replay  \\
+    \acs{PPO}~\cite{schulman2017ppo}  & Actor-crític              & On-policy  & Cap                \\
+    \acs{NFSP}~\cite{heinrich2016nfsp} & Fictitious self-play     & Tots dos   & Reservoir buffer   \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -517,7 +516,7 @@ Per dotar l'agent de memòria s'afegeix una capa recurrent (com la \acf{GRU} o l
 \acs{LSTM}) que manté un estat ocult $(h_t, c_t)$ propagat a través dels passos de temps.
 Així, la política ja no depèn només de $o_t$ sinó de tota la seqüència d'observacions
 passades, el que equival a actuar sobre la \emph{creença} (distribució de probabilitat
-sobre estats ocults). Aplicada al \ac{PPO}, aquesta extensió és el \texttt{RecurrentPPO}. 
+sobre estats ocults). Aplicada al \ac{PPO}, aquesta extensió és el \emph{RecurrentPPO}. 
 
 La idea d'afegir recurrència per a tractar un \ac{POMDP}
 prové del \acf{DRQN}~\cite{hausknecht2015drqn}, que la va introduir sobre el \ac{DQN}; aquí
@@ -565,7 +564,7 @@ resoldre explícitament l'arbre de joc.
         respon amb la millor acció possible a les polítiques de l'historial.
 
   \item \textbf{Bucle SL (política promig)}: una xarxa auxiliar
-        \texttt{AveragePolicyNet} s'entrena per cross-entropy per imitar les
+        \emph{AveragePolicyNet} s'entrena per cross-entropy per imitar les
         accions preses pel bucle RL al llarg de tot l'entrenament. Rep com a
         etiquetes les accions del bucle RL i aprèn la distribució promig
         d'accions.
