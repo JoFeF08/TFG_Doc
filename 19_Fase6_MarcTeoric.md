@@ -1,69 +1,131 @@
 # 19. Fase 6: Marc Teòric (Neural Fictitious Self-Play)
 
-## 1. Motivació: La limitació de la Fase 5
+## 1. Motivació: límit de la Fase 5
 
-La Fase 5 va introduir un *pool* mixt d'agents basats en regles i *snapshots* històrics de l'agent PPO. Tot i que aquesta aproximació (una forma de Fictitious Self-Play simplificat) va aconseguir reduir substancialment l'explotabilitat de la política (pujant la *metric_robust* de 59.5% a 77.8%), va revelar una mancança estructural: la dispersió del rendiment contra les diferents variants de la *pool* (`std_pool`) no va disminuir. Es va mantenir estable al voltant del 10–15% durant tot l'entrenament.
+La Fase 5 (self-play mixt amb snapshots + regles) va millorar la robustesa, però encara mostra oscil·lacions i episodis de sobreespecialització. El motiu és que PPO continua essent una *best response* local: optimitza contra la distribució actual d'oponents, no contra la política mitjana de tota la seva història.
 
-Això passa perquè l'agent PPO, en cada instant $t$, aprèn una *best-response* contra la distribució d'oponents actual. Tot i que l'entorn varia, l'agent reacciona especialitzant-se i des-especialitzant-se periòdicament sense arribar mai a una estratègia completament "equilibrada" (un Equilibri de Nash). 
+En jocs de suma zero, aquesta dinàmica pot entrar en cicles tàctics. Per això, la Fase 6 introdueix NFSP: separa explícitament la política de resposta òptima (RL) de la política mitjana (SL).
 
-## 2. Fictitious Play i Neural Fictitious Self-Play (NFSP)
+## 2. NFSP: *best response* + *average policy*
 
-Per assolir l'Equilibri de Nash en jocs de dos jugadors de suma zero (com el Truc, a la pràctica), Heinrich & Silver (2016) van proposar el **Neural Fictitious Self-Play (NFSP)**. La idea central és que, mentre l'agent aprèn la *best-response* (mitjançant un algorisme de RL com PPO), en paral·lel s'ha de calcular i emmagatzemar la **política mitjana** (average policy) de tot l'historial de l'agent.
+La idea de NFSP (Heinrich & Silver, 2016) és entrenar en paral·lel:
 
-L'Equilibri de Nash s'assoleix quan els jugadors juguen segons aquesta *política mitjana*, i no segons la *best-response* del darrer pas.
+- Un model RL (aquí PPO) que aprèn la *best response*.
+- Un model SL (`AveragePolicyNet`) que aproxima la política mitjana històrica.
 
-## 3. Average Policy via Reservoir Sampling
+La convergència cap a Nash no es mesura amb la política RL sola, sinó amb la relació entre la *best response* i aquesta política mitjana.
 
-Atès que les xarxes neuronals no poden sumar i dividir directament tots els seus pesos històrics per obtenir una "xarxa mitjana", NFSP ho resol com un problema d'Aprenentatge Supervisat (SL):
-- Es crea una xarxa neuronal independent (`AveragePolicyNet`).
-- Es guarda un historial de les accions preses per l'agent de RL (PPO) en un buffer especial: el **Reservoir Buffer**.
-- S'entrena la xarxa SL per predir les accions guardades al buffer, aproximant així el comportament històric mitjà de l'agent.
+## 3. Política mitjana amb Reservoir Sampling
 
-**Per què Reservoir Sampling?** Un buffer estàndard (com FIFO) sempre estaria esbiaixat cap al comportament més recent. El Reservoir Sampling garanteix matemàticament que cada acció mai presa per l'agent al llarg de *tot* l'entrenament tingui la mateixa probabilitat exacta de romandre al buffer, creant un conjunt de dades que representa perfectament l'average policy real.
+La política mitjana no es calcula fent mitjana de pesos; es reformula com un problema supervisat sobre parelles `(observació, acció)` recollides del PPO.
 
-## 4. El Paràmetre d'Anticipació ($\eta$)
+Per evitar biaix temporal, el dataset es manté amb **Reservoir Sampling**:
 
-Si el PPO entrenés només contra l'average policy de l'oponent (FSP pur), el procés pot ser molt lent i rígid. NFSP introdueix el paràmetre d'anticipació $\eta$ (eta). Aquest hiperparàmetre (típicament $\eta = 0.5$) defineix la probabilitat que el model en entrenament (PPO) jugui contra:
-- **$\eta$**: L'Average Policy (xarxa SL).
-- **$1 - \eta$**: La *best-response* actual de l'oponent (a la nostra arquitectura, el `SelfPlayPool` que conté els snapshots i les regles).
+- Cada mostra vista durant l'entrenament té la mateixa probabilitat de romandre al buffer.
+- Això aproxima la distribució global de decisions del PPO, no només les més recents.
 
-Barrejant ambdues fonts, PPO s'enfronta a l'estratègia estable de fons (SL) i a les variacions tàctiques recents de la pool, afavorint una convergència robusta.
+La xarxa SL (`AveragePolicyNet`) s'entrena amb Cross-Entropy sobre aquest reservoir.
 
-## 5. Resultats esperats de la Fase 6
+## 4. Anticipació \(\eta\) i mescla d'oponents
 
-1. **Reducció de `std_pool`**: Com que l'average policy no té els "cicles d'especialització" d'un snapshot individual, actua com a "àncora". Entrenar contra la barreja d'aquesta àncora i la pool obligarà el PPO a generalitzar, reduint la variància entre estils.
-2. **Convergència a Nash**: Si l'explotabilitat envers la pròpia average policy (`exploit_vs_sl`) tendeix a zero (o un nombre petit estabilitzat al voltant del ~5%), vol dir que la *best-response* actual ja no pot explotar la *average policy*, definició empírica de l'apropament a un Equilibri de Nash.
+L'entorn usa `NFSPPool`, que combina:
 
-## 6. Reutilització de Mètriques de Fases Anteriors
+- `SLAgent` amb probabilitat \(\eta\).
+- `SelfPlayPool` (regles + snapshots PPO) amb probabilitat \(1-\eta\).
 
-La Fase 6 hereta totes les mètriques de la Fase 5 i n'afegeix de noves específiques per a NFSP:
+\(\eta\) és, per tant, el **pes de la política mitjana** dins del mostreig d'oponents. Intuïtivament:
 
-### Mètriques heretades (Fases 4–5)
-- **`metric`**: Win Rate contra l'agent de regles base i l'agent aleatori, ponderat 70%/30%. Mesura el rendiment brut de l'agent.
-- **`metric_robust`**: Mitjana del WR contra totes les variants de la pool (`conservador`, `agressiu`, `truc_bot`, `envit_bot`, `faroler`, `equilibrat`). Mesura la robustesa i generalització.
-- **`std_pool`**: Desviació estàndard del WR entre totes les variants. Un valor alt indica especialització; un valor baix, equilibri entre estils.
-- **`wr_{variant}`**: WR individual contra cada variant de la pool (6 variants).
+- \(\eta\) alt: PPO s'entrena més contra l'`SLAgent` (més estabilitat i menys cicles tàctics).
+- \(\eta\) baix: PPO s'entrena més contra la `SelfPlayPool` (més pressió de best-response i adaptació local).
 
-### Mètriques noves (Fase 6 / NFSP)
-- **`sl_loss`**: Cross-Entropy Loss de l'`AveragePolicyNet` respecte les parelles `(observació, acció)` del Reservoir Buffer. Indica si la política mitjana converge (ha de ser decreixent).
-- **`wr_vs_sl`**: Win Rate de l'agent PPO (best-response) jugant contra el propi `SLAgent` (Average Policy).
-- **`exploit_vs_sl`**: `|wr_vs_sl − 50.0|`. Quantifica la distància empírica a l'Equilibri de Nash; com més proper a 0, menys explotable és l'average policy i més a prop estem del Nash.
-- **`eta_actual`**: Valor real de la proporció SL vs pool durant les partides d'entrenament (ha d'estabilitzar-se al voltant de `η`).
+Exemple: si \(\eta = 0.5\), aproximadament la meitat de partides d'entrenament són contra `SLAgent` i l'altra meitat contra `SelfPlayPool`.
 
-## 7. El Bucle d'Entrenament RL + SL
+En implementació real, \(\eta\) no és totalment estàtic: es pot forçar temporalment a 0 en períodes de baixa qualitat SL (calibració degradada) per estabilitzar l'aprenentatge.
 
-La Fase 6 combina dos bucles d'optimització independents que s'executen en paral·lel:
+## 5. Com es calcula la metrica Nash
+
+Abans de definir el punt Nash operatiu, convé fixar les metriques tal com s'implementen al codi de F6:
+
+- `metric` (rendiment brut):
+	- ve de `evaluar_agent(...)` (importat de Fase 2),
+	- combinació ponderada de WR contra random i WR contra regles,
+	- forma usada al projecte: `metric = 0.25 * wr_random + 0.75 * wr_regles`.
+
+- `metric_robust` (robustesa entre estils):
+	- primer es calcula `wr_pool_mean = mitjana(wr_conservador, wr_agressiu, wr_truc_bot, wr_envit_bot, wr_faroler, wr_equilibrat)`,
+	- després `std_pool = desviacio estandard` d'aquests 6 WR,
+	- finalment `metric_robust = wr_pool_mean - 0.5 * std_pool`.
+
+- `exploit_vs_sl` (gap empíric a Nash):
+	- `wr_vs_sl` = WR del PPO actual contra el seu `SLAgent`, amb posició alternada,
+	- `exploit_vs_sl = |wr_vs_sl - 50.0|`.
+
+- `calib_envit` i `calib_truc` (de `calibracio.py`):
+	- es mesuren sobre la **primera decisió** de cada mà quan el model és mà (`round_counter=0`, sense resposta pendent),
+	- `calib_envit = P(apostar_envit | envit_score alt) - P(apostar_envit | envit_score baix)`,
+	- buckets usats: `envit_score <= 7` (baix) i `envit_score >= 29` (alt),
+	- `calib_truc = P(apostar_truc | ma forta de truc)` amb llindar de força alta (`forca_ma >= 216`),
+	- al run F6, `calib_combined = (calib_envit + calib_truc) / 2`.
+
+Aquestes metriques no són decoratives: entren directament als gates de validesa i selecció de checkpoints.
+
+## 6. Nova definició operativa de “punt Nash”
+
+A Fase 6 no n'hi ha prou amb minimitzar `exploit_vs_sl`. Es defineix un gate de validesa `nash_valid` per evitar falsos positius inicials:
+
+- Reservoir ple (`len(reservoir) == capacity`).
+- Entrenament prou madur (`step >= nash_min_steps`).
+- Política no degenerada en calibració (`calib_envit >= CALIB_ENVIT_MIN`) i bon rendiment contra `envit_bot` (`wr_envit_bot >= ENVIT_BOT_MIN`).
+
+Només en aquests punts es considera vàlid arxivar `best_nash`.
+
+## 7. Mètriques de Fase 6
+
+### Heretades
+
+- `metric`: rendiment brut (mateixa definició que fases anteriors).
+- `metric_robust`: robustesa global contra variants.
+- `std_pool`: dispersió entre variants.
+- `wr_{variant}`: win-rate per estil.
+- `wr_vs_self`, `exploit_selfplay`: continuïtat de Fase 5.
+
+### Noves o reforçades a F6
+
+- `sl_loss`: pèrdua supervisada de `AveragePolicyNet`.
+- `wr_vs_sl`: win-rate PPO contra `SLAgent`.
+- `exploit_vs_sl = |wr_vs_sl - 50|`: distància empírica a Nash.
+- `eta_actual`: mescla efectiva SL vs pool.
+- `calib_envit`, `calib_truc`: salut tàctica de la política.
+- `nash_valid`: indicador de validesa del punt Nash.
+- `evals_sense_millora`: comptador per *early stopping* de `best_nash`.
+
+## 8. Bucle RL + SL amb control d'estabilitat
 
 ### Bucle RL (PPO)
-1. L'agent PPO observa l'estat del joc i tria una acció.
-2. L'oponent s'escull del `NFSPPool`: amb probabilitat `η` és el `SLAgent`; amb probabilitat `1−η` és un agent de la `SelfPlayPool` (regles o snapshot PPO).
-3. Es recull la recompensa i la transició `(s, a, r, s')` es desa al buffer PPO (rollout).
-4. Cada `n_steps × num_envs = 8.192` passos, PPO actualitza la seva política per gradient.
+
+1. PPO juga contra l'oponent mostrejat de `NFSPPool`.
+2. Les transicions alimenten PPO.
+3. Paral·lelament, cada `(obs, acció)` s'envia al reservoir.
 
 ### Bucle SL (Cross-Entropy)
-1. **Recollida de dades**: A cada pas, es guarda la tupla `(observació_240d, acció)` al **Reservoir Buffer** (capacitat 200k). El Reservoir garanteix que qualsevol acció de tota la història té la mateixa probabilitat de romandre al buffer.
-2. **Actualització SL**: Cada `sl_every = 50.000` passos, es fa un epoch de Cross-Entropy sobre un minibatch del Reservoir per entrenar l'`AveragePolicyNet`.
-3. La SL Loss és decreixent al llarg del entrenament, reflectint que la xarxa SL aproxima cada cop millor l'historial de decisions del PPO.
 
-### Interacció entre els dos bucles
-Els dos bucles operen sobre xarxes separades però comparteixen el backbone COS congelat (`CosMultiInputSB3`, 364k paràmetres). Això permet que l'`AveragePolicyNet` aprofiti les representacions apreses pel feature extractor sense re-entrenar-lo, mantenint la coherència entre la política RL i la política SL.
+1. Cada `sl_every` passos s'entrena `AveragePolicyNet` amb minibatches del reservoir.
+2. Els pesos SL s'actualitzen també en la còpia CPU usada pel pool d'oponents.
+3. Es monitoritza calibració SL durant entrenament per detectar col·lapse.
+
+### Mecanismes de seguretat
+
+- **Pausa/resum de component SL** segons degradació de `calib_envit` (evita que un SL inestable domini el pool).
+- **Criteri dual de `best_nash`**: només es guarda si milloren alhora `exploit_vs_sl` i `calib_combined`.
+- **Early stopping de Nash**: si hi ha diversos punts `nash_valid` consecutius sense millora dual, es talla el run.
+
+Aquestes tres peces són l'actualització conceptual clau de la Fase 6 respecte a una NFSP “clàssica” minimalista.
+
+## 9. Nota metodològica: Nash operatiu vs Nash nominal
+
+En un pipeline aplicat com aquest, un mínim puntual de `exploit_vs_sl` no implica necessàriament convergència real a Nash. Per això la Fase 6 adopta una definició operativa més estricta:
+
+- només es considera "Nash vàlid" si el punt és madur, amb reservoir representatiu i calibració no degenerada,
+- i el model seleccionat com a `best_nash` ha de millorar també la qualitat tàctica (calibració), no només el gap d'explotabilitat.
+
+Aquesta distinció (Nash nominal vs Nash operatiu) és essencial per evitar conclusions optimistes causades per soroll estadístic o per polítiques degenerades que aparentment redueixen `exploit_vs_sl` però perden comportament estratègic útil.

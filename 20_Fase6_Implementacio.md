@@ -1,107 +1,240 @@
 # 20. Fase 6: Implementació i Resultats (NFSP)
 
-Aquest document detalla la implementació tècnica del Neural Fictitious Self-Play (NFSP) definit teòricament a [[19_Fase6_MarcTeoric]].
+Aquest document descriu l'estat actual de la implementació NFSP de la Fase 6 i com interpretar-ne els resultats.
 
-> **Q5:** Pot el component SL (política mitjana) reduir l'`std_pool` i acostar el sistema a l'Equilibri de Nash?
+> **Q5:** Pot el component SL (política mitjana) acostar-se a Nash sense degradar el rendiment robust?
 
-## Disseny experimental
+## Disseny experimental (versió actual)
 
-S'executa un _run_ principal de **48M steps** per comparar equitativament amb la Fase 5:
+La comparació segueix sent F5 vs F6:
 
-| Run                        | Agent RL         | Política SL      | Pool oponents                                |
-| :------------------------- | :--------------- | :--------------- | :------------------------------------------- |
-| **F5-selfplay** (Baseline) | PPO + COS frozen | N/A              | SelfPlayPool (Regles + PPO)                  |
-| **F6-nfsp**                | PPO + COS frozen | AveragePolicyNet | NFSPPool:$\eta$ SL + $(1-\eta)$ SelfPlayPool |
+| Run | Agent RL | Política SL | Pool d'oponents |
+| :-- | :-- | :-- | :-- |
+| F5-selfplay (baseline) | PPO + COS frozen | No | SelfPlayPool (regles + snapshots PPO) |
+| F6-nfsp | PPO + COS frozen | Sí (`AveragePolicyNet`) | `NFSPPool`: \(\eta\) SL + \((1-\eta)\) SelfPlayPool |
 
-El punt de partida (warm-start) és el model més robust de la Fase 5 (`best_robust.zip`), per assegurar que el Reservoir Buffer i l'agent SL comencen a nodrir-se d'un comportament ja molt depurat.
+El warm-start continua essent el model robust de F5 (`best_robust.zip`).
 
-## Fitxers implementats
+## Fitxers clau
 
-**Nucli NFSP (`RL/models/nfsp/`)**
+### Nucli NFSP
 
-- `reservoir_buffer.py`: Emmagatzema tuples `(observació_plana_240, acció)` mantenint la distribució de tota la història.
-- `average_policy.py`: Conté la xarxa `AveragePolicyNet` (aprofita el mateix `CosMultiInputSB3` precongelat + un MLP nou per predicar les accions via Softmax/Gumbel) i l'agent `SLAgent` usat a les partides.
+- `RL/models/nfsp/reservoir_buffer.py`
+- `RL/models/nfsp/average_policy.py`
 
-**Bucle d'Entrenament (`RL/entrenament/entrenamentsComparatius/fase6/`)**
+### Entrenament Fase 6
 
-- `pool_nfsp.py`: Afegeix la lògica del paràmetre d'anticipació $\eta$. L'entorn escull demanar l'oponent a l'SL (amb probabilitat $\eta$) o a la pool regular (PPO / Regles).
-- `entrenament_fase6.py`: Adapta el bucle de la F5, guardant observacions cada `step` de Stable Baselines al Reservoir, i disparant l'optimització SL (Cross-Entropy Loss) independent.
-- `run_fase6.sh`: Script llançador amb els hiperparàmetres: buffer de 200.000, `sl_every` de 50.000, `sl_lr` de 5e-4 i $\eta=0.5$.
+- `RL/entrenament/entrenamentsComparatius/fase6/pool_nfsp.py`
+- `RL/entrenament/entrenamentsComparatius/fase6/entrenament_fase6.py`
+- `RL/entrenament/entrenamentsComparatius/fase6/run_fase6.sh`
 
-### Decisió: `start_method='fork'` i `num_envs = 32`
+## Actualitzacions grans incorporades
 
-F6 utilitza `start_method='fork'` a `SubprocVecEnv` en lloc del `forkserver` per defecte de SB3. La causa és l'overhead de memòria introduït per `AveragePolicyNet` al pool.
+### 1) Criteri `nash_valid` amb gates de qualitat
 
-Amb **ForkServer**, cada subprocess re-importa tots els mòduls i instancia `sl_net_cpu` (backbone COS congelat 364k paràmetres + cap MLP) de forma independent. El pic durant la inicialització simultània de 32 subprocessos supera els ~13 GB de RAM lliures del servidor i el kernel mata el procés (OOM).
+L'arxiu de `best_nash` no depèn només de minimitzar `exploit_vs_sl`. Ara cal que es compleixi:
 
-Amb **Fork + Copy-on-Write (COW)**, els subprocessos hereten l'espai de memòria del procés pare. Les pàgines de `sl_net_cpu` (carregat al pare en CPU) es comparteixen en mode read-only i no es copien fins que algun subprocess les modifiqui, la qual cosa mai succeeix (SLAgent opera en mode `eval` i `no_grad`). El pic addicional per subprocess és pràcticament zero, cosa que permet tornar a 32 entorns paral·lels.
+- Reservoir ple.
+- `step >= nash_min_steps`.
+- Política no degenerada (`calib_envit` suficient i bon `wr_envit_bot`).
 
-**Restricció tècnica**: el fork ha de fer-se _abans_ d'inicialitzar CUDA, ja que els contexts CUDA no sobreviuen a un `fork()`. Per això, la funció `_ppo_nfsp()` crea primer `sl_net_cpu`, `nfsp_pool` i `vec_env` (el fork), i _després_ carrega `sl_net` a GPU i inicialitza `cudnn.benchmark`.
+Això elimina falsos Nash inicials.
 
-|                      | F5-selfplay      | F6-nfsp          |
-| :------------------- | :--------------- | :--------------- |
-| `start_method`       | forkserver       | **fork**         |
-| `num_envs`           | 32               | **32**           |
-| `n_steps × num_envs` | 256 × 32 = 8.192 | 256 × 32 = 8.192 |
-| Velocitat estimada   | ~250 steps/s     | ~250 steps/s     |
-| Temps 48M            | ~2.5 dies        | ~2.5 dies        |
+### 2) Criteri dual per a `best_nash`
 
-La comparació F5 vs F6 és equitativa: el batch PPO (`n_steps × num_envs` = 8.192) és idèntic als dos runs.
+Un punt només millora `best_nash` si:
 
-## Mètriques Registrades
+- baixa `exploit_vs_sl`, i
+- puja `calib_combined = (calib_envit + calib_truc)/2`.
 
-S'expandeix el CSV respecte a la Fase 5:
+És un canvi clau: no s'accepten checkpoints “Nash” amb degradació tàctica.
 
-- `sl_loss`: Cross-entropy mitjana de l'Average Policy respecte el buffer. Mostra com l'agent SL "aprèn" les accions històriques.
-- `wr_vs_sl`: WR del PPO contra el seu propi SLAgent estocàstic.
-- `exploit_vs_sl`: $| \text{wr\_vs\_sl} - 50.0 |$. Mesura la distància empírica al Nash; com més proper a 0, més in-explotable és el comportament històric vs l'actual.
-- `eta_actual`: Valor dinàmic de la ràtio de self-play SL.
+### 3) Calibració integrada al bucle
 
-## Procediment d'ús
+S'afegeix monitoratge de calibració durant entrenament (`mesurar_calibracio`) i checkpoints específics:
+
+- `best_calib.zip`
+- `best_nash.zip`
+- `best_robust.zip`
+- `best.zip`
+
+També s'exporta `sl_final.pt`.
+
+### 4) Pausa/resum dinàmic del component SL
+
+Si la calibració d'envit de l'SL cau fort respecte al seu pic, es força temporalment `eta=0` (SL off). Quan es recupera, es reactiva SL. Aquest mecanisme evita contaminar l'entrenament RL amb un SL col·lapsat.
+
+### 5) Early stopping orientat a Nash
+
+Hi ha `nash_patience`: si hi ha diversos punts `nash_valid` seguits sense millora dual de `best_nash`, el run s'atura anticipadament.
+
+## Punts importants (resum operatiu)
+
+### 1) Noves metriques i calcul
+
+- exploit_vs_sl = abs(wr_vs_sl - 50.0)
+- metric_robust = wr_pool_mean - 0.5 * std_pool
+- calib_combined = (calib_envit + calib_truc) / 2
+
+On:
+
+- wr_vs_sl es el win-rate del PPO actual contra el SLAgent.
+- wr_pool_mean es la mitjana de wr_conservador, wr_agressiu, wr_truc_bot, wr_envit_bot, wr_faroler i wr_equilibrat.
+- std_pool es la desviacio estandard d'aquests sis win-rates.
+
+### 2) Sistema SL: quan esta actiu i quan es desactiva
+
+El component SL funciona amb una logica adaptativa:
+
+- Si el reservoir te massa poques mostres (len < 10 * SL_BATCH_SIZE), eta efectiva passa a 0.0.
+- Si la calibracio envit de SL cau fort respecte al seu pic historic i baixa de 25 pp, es força pausa de SL (eta=0.0).
+- Si la calibracio es recupera, SL es reactiva i es restaura eta target.
+
+Aixo evita que una average policy degradada contamini l'entrenament RL.
+
+### 3) Que es el Reservoir Buffer i per que es clau
+
+ReservoirBuffer guarda parelles (obs_240, accio) amb mostreig reservoir:
+
+- capacitat fixa (per defecte 200000),
+- probabilitat uniforme sobre tota la historia observada,
+- sense biaix FIFO cap a les mostres recents.
+
+Aquest buffer alimenta la Cross-Entropy de SL i es el mecanisme que aproxima la politica mitjana real de NFSP.
+
+### 4) Estructura general del sistema
+
+Arquitectura logica en entrenament:
+
+- PPO (best response) apren contra NFSPPool.
+- NFSPPool tria oponent: SLAgent amb probabilitat eta, o SelfPlayPool amb 1-eta.
+- SelfPlayPool conte regles + snapshots PPO.
+- SLAgent inferix amb AveragePolicyNet, entrenada sobre ReservoirBuffer.
+- Totes dues branques reutilitzen COS frozen per coherencia representacional.
+
+### 5) Early stopping: criteri exacte
+
+Early stopping no es basa en la metrica classica, sino en estabilitat Nash valida:
+
+- un punt nomes compta si nash_valid=1,
+- best_nash millora nomes si baixa exploit_vs_sl i puja calib_combined a la vegada,
+- si hi ha nash_patience evals valides consecutives sense aquesta millora dual, el run s'atura.
+
+Aquest disseny evita parar en falsos minims d'explotabilitat que venen amb degradacio tactica.
+
+## Decisions tècniques de rendiment
+
+### `start_method='fork'`
+
+Es manté `fork` per compartir la xarxa SL CPU via Copy-on-Write entre subprocessos i evitar OOM de `forkserver`.
+
+### Ordre de creació CPU/GPU
+
+Primer es crea `vec_env` (fork), després es mou la xarxa SL d'entrenament a GPU. Això evita problemes de context CUDA amb `fork`.
+
+## Hiperparàmetres i defaults actuals
+
+### Defaults de `entrenament_fase6.py`
+
+- `steps=12_000_000`
+- `num_envs=NUM_ENVS_PPO`
+- `n_partides=5`
+- `eta=0.5`
+- `reservoir_cap=200000`
+- `sl_lr=5e-4`
+- `sl_every=50000`
+- `nash_min_steps=10_000_000`
+- `nash_patience=3`
+- `hidden_layers=[256, 256]`
+
+### Defaults del launcher `run_fase6.sh`
+
+- `STEPS=80000000`
+- `NUM_ENVS=32`
+- `n_partides=1`
+- `nash_min_steps=8000000`
+- `nash_patience=8`
+- `ent_coef=0.05`
+
+Nota: el launcher i l'script Python tenen defaults diferents; el run real el determinen els arguments del launcher.
+
+## Esquema de log actual (`training_log.csv`)
+
+Columnes rellevants:
+
+- Rendiment clàssic: `metric`, `wr_random`, `wr_regles`.
+- Robustesa: `metric_robust`, `std_pool`, `wr_{variant}`.
+- Self-play: `wr_vs_self`, `exploit_selfplay`.
+- NFSP/SL: `sl_loss`, `wr_vs_sl`, `exploit_vs_sl`, `eta_actual`.
+- Qualitat/Nash: `calib_envit`, `calib_truc`, `nash_valid`, `evals_sense_millora`.
+
+## Procediment d'ús (actualitzat)
 
 ```bash
-# Run complet (48M steps, 16 envs per defecte)
+# Execució estàndard amb launcher (usa defaults del .sh)
 bash RL/entrenament/entrenamentsComparatius/fase6/run_fase6.sh \
      RL/entrenament/entrenamentEstatTruc/registres/<timestamp>/models/best_pesos_cos_truc.pth
 
-# Smoke test (500k steps)
+# Smoke test ràpid
 bash RL/entrenament/entrenamentsComparatius/fase6/run_fase6.sh \
      RL/entrenament/entrenamentEstatTruc/registres/<timestamp>/models/best_pesos_cos_truc.pth \
      500000
 ```
 
-## Resultats
+## Interpretació de resultats (guia)
 
-Run completat: **48M steps**, 153 avaluacions enregistrades.
+Per evitar conclusions esbiaixades, cal separar quatre checkpoints conceptuals:
 
-### Taula Resum
+- `best.zip`: millor `metric` (rendiment brut).
+- `best_robust.zip`: millor `metric_robust` (generalització entre estils).
+- `best_nash.zip`: millor punt Nash **vàlid** (exploit + calibració).
+- `best_calib.zip`: millor calibració tàctica.
 
-| Mètrica                      | F4-ablació  | F5-selfplay | F6-NFSP               |
-| :--------------------------- | :---------- | :---------- | :-------------------- |
-| `max metric`                 | 89.0% @ 24M | 89.2% @ 42M | **91.0% @ 14M**       |
-| `metric_robust` (màx)        | 73.2%       | **77.8%**   | 75.2%                 |
-| `std_pool` (últimes 5 aval.) | 12.9%       | **11.9%**   | 13.4%                 |
-| `exploit_vs_sl` (últimes 5)  | —           | —           | 16.7 pp               |
-| `exploit_vs_sl` (best_nash)  | —           | —           | **3.3 pp** @ 1M steps |
+Amb aquesta versió de Fase 6, l'avaluació principal recomanada és:
 
-### Validació d'Hipòtesis
+1. H1: no regressió de `metric` contra F5.
+2. H2: robustesa mantinguda/millorada (`metric_robust` i `std_pool`).
+3. H3: existeix almenys un punt amb `nash_valid=1` i `exploit_vs_sl < 8`.
 
-| Hipòtesi                                        | Resultat                     | Detall                                                                |
-| :---------------------------------------------- | :--------------------------- | :-------------------------------------------------------------------- |
-| **H1** — No regressió (`metric` F6 ≥ F5 − 3 pp) | ✅**VÀLIDA**                 | F6=91.0% vs F5=89.2%; +1.8 pp de guany                                |
-| **H2** — Reducció `std_pool`                    | ❌**FALLA**                  | F6 std=13.4% vs F5 std=11.9%; lleugerament pitjor                     |
-| **H3** — Nash: `exploit_vs_sl` < 8 pp           | ✅**VÀLIDA** (@ `best_nash`) | **3.3 pp** @ 1M steps (`best_nash.zip`); 16.7 pp en mitjana últimes 5 |
+Aquests criteris són els que implementa també el notebook d'anàlisi de Fase 6.
 
-### Anàlisi de les Corbes
+## Decisions subtils i riscos a tenir en compte
 
-- **SL Loss**: Decreix de ~1.94 a ~1.71 al llarg del entrenament, confirmant que l'`AveragePolicyNet` aprèn progressivament el comportament històric del PPO.
-- **`metric` bruta**: F6 arriba al pic de 91.0% molt aviat (14M steps), aprofitant el warm-start des del `best_robust.zip` de F5. Posteriorment oscil·la entre el 80–84%.
-- **`exploit_vs_sl`**: Molt variable durant tot el run, rarament per sota del llindar de 8pp. La política mitjana roman explotable.
+### 1) Eta efectiva vs eta real del pool
 
-### Interpretació
+Al callback es calcula `eta_efectiva=0.0` quan el reservoir és petit (`len < 10 * SL_BATCH_SIZE`) i aquest valor es registra al log. Però el mostreig real d'oponent el fa `NFSPPool.sample()` segons `nfsp_pool.eta`.
 
-**H1 (Vàlida):** El warm-start des del model robust de F5 i la pressió addicional del component SL contribueixen a un pic de rendiment superior. L'NFSP no perjudica el rendiment brut.
+Conseqüència:
 
-**H2 (Falla):** Amb `η = 0.5`, buffer de 200k i `sl_every = 50k`, el Reservoir Buffer no acumula prou diversitat d'historial per que l'Average Policy actuï com a àncora estabilitzadora de la variança en el domini del Truc (espai d'observació 240-dimensional). El resultat és coherent amb la literatura: NFSP requereix molts més episodis per convergir en dominis complexos.
+- el log pot mostrar `eta_actual=0.0` en trams inicials,
+- mentre que el pool encara pot estar fent servir SL si `nfsp_pool.eta > 0`.
 
-**H3 (Vàlida @ `best_nash`):** El checkpoint `best_nash.zip` (1M steps, `exploit_vs_sl` = 3.3 pp) demostra que el sistema _sí pot_ assolir la zona Nash (<8 pp). Aquesta és l'avaluació metodològicament correcta per a NFSP: l'objectiu és demostrar que la política mitjana pot ser no-explotable, no que ho sigui de forma contínua. En mitjana de les últimes 5 avaluacions (16.7 pp) H3 fallaria, però això reflecteix que l'entrenament no ha convergit de forma estable — coherent amb la literatura (Heinrich & Silver, 2016), on fins i tot Leduc Hold'em requereix 10^8–10^9 episodis.
+Per coherència total, si es vol un "SL realment desactivat" en cold-start, cal forçar també `nfsp_pool.set_eta(0.0)` en aquest tram.
+
+### 2) Semàntica de `best_nash.zip` al final
+
+Al tancament del run, si no existeix cap `best_nash.zip`, el codi desa igualment el model final amb aquest nom. Això evita errors de fitxers absents, però semànticament vol dir que `best_nash.zip` no garanteix haver passat cap gate `nash_valid`.
+
+Recomanació de lectura:
+
+- validar sempre `n_nash_valid` i els punts `nash_valid=1` del CSV,
+- interpretar `best_nash.zip` com a "best_nash vàlid" només si hi ha almenys un punt vàlid al log.
+
+### 3) Balanceig del criteri dual
+
+`best_nash` exigeix millora simultània de `exploit_vs_sl` i `calib_combined`. És una decisió conservadora (molt robusta), però pot alentir molt l'actualització de `best_nash` si una de les dues metriques s'estanca.
+
+Pràcticament:
+
+- guanyes qualitat metodològica,
+- però incrementes probabilitat d'early-stop per manca de "millora dual" encara que hi hagi millora parcial.
+
+### 4) Snapshoting i cost de diagnosi
+
+El sistema guarda snapshots PPO cada 1M i checkpoints SL periòdics. Això és excel·lent per auditoria, però incrementa IO i espai a disc en runs llargs.
+
+En execucions extensives, convé monitoritzar:
+
+- mida de `snapshots/`,
+- mida de `sl_checkpoints/`,
+- i freqüència de checkpoints segons necessitats d'anàlisi.

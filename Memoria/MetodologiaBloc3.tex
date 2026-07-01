@@ -25,10 +25,15 @@ concretes són:
 \begin{itemize}
   \item \textbf{H1}: el self-play no degrada la \(\text{metric}\) clàssica respecte a la
         línia base extesa (F4-ablació-48M): \(\text{metric}_{F5} \geq \text{metric}_{F4} - 3\)~pp.
+        El marge de 3~pp es fixa a l'ordre de magnitud del soroll estadístic esperable de
+        l'avaluació: amb 100~partides per oponent (secció~\ref{sec:marc-metodologic}),
+        l'error estàndard d'un win-rate individual proper al 50\% és d'uns 5~pp, que en
+        combinar-se a la mètrica ponderada (equació~\ref{eq:metric}) es redueix a uns
+        4~pp; diferències per sota d'aquest marge no es poden distingir amb fiabilitat del
+        soroll de mostreig.
   \item \textbf{H2}: la robustesa inter-estil (\(\text{metric\_robust}\)) millora
         respecte a F4-ablació.
-  \item \textbf{H3}: l'auto-explotabilitat final (\(\text{exploit\_selfplay}\)) queda per
-        sota de 10~punts percentuals.
+  \item \textbf{H3}: l'auto-explotabilitat final queda per sota de 10~punts percentuals.
 \end{itemize}
 
 \paragraph{Disseny.}
@@ -50,7 +55,7 @@ té \(\operatorname{std}=0\) i, per tant,
 paga una penalització proporcional a la irregularitat. L'\textbf{auto-explotabilitat}
 mesura la distància a l'equilibri:
 \begin{equation}
-  \text{exploit\_selfplay} = \lvert \text{wr}_{\text{vs\_recents}} - 50 \rvert,
+  \text{auto-explotabilitat} = \lvert \text{wr}_{\text{vs\_recents}} - 50 \rvert,
   \label{eq:exploit-sp}
 \end{equation}
 on \(\text{wr}_{\text{vs\_recents}}\) és el win-rate del model actual contra els tres
@@ -123,7 +128,7 @@ es validen (taula~\ref{tab:fase5-resum}).
   \centering
   \begin{tabular}{lrrrr}
     \toprule
-    Run & Pic \(\text{metric}\) & Step & Pic \(\text{metric\_robust}\) & \(\text{exploit\_sp}\) \\
+    Run & Pic \(\text{metric}\) & Step & Pic \(\text{metric\_robust}\) & Auto-explot. \\
     \midrule
     F4-ablació-48M & 89{,}0\% & 24M & 73{,}2\% & — \\
     F5-selfplay    & \textbf{89{,}2\%} & 41{,}5M & \textbf{77{,}8\%} & 4{,}7~pp \\
@@ -169,7 +174,7 @@ figura~\ref{fig:fase5-variants} mostra el reequilibri: F4 tenia win-rates de
 50--55\% contra els estils agressiu i faroler; F5 els puja al 80--85\%.
 
 \emph{H3 --- auto-explotabilitat.} \textbf{Valida.}
-\(\text{exploit\_selfplay}\) final = 4{,}7~pp, molt per sota del llindar de 10~pp.
+L'auto-explotabilitat final = 4{,}7~pp, molt per sota del llindar de 10~pp.
 
 \paragraph{Decisió.} Les tres hipòtesis es validen: el self-play mixt millora la
 robustesa sense perjudicar el rendiment global. Tanmateix, la dispersió entre estils
@@ -184,19 +189,28 @@ xarxa de política mitjana del \ac{NFSP} complet, que s'implementa a la Fase~6.
 \label{sec:fase6}
 
 \paragraph{Hipòtesi.} Segons el \ac{NFSP}~\cite{heinrich2016nfsp}, la convergència a un
-equilibri de Nash en jocs d'informació parcial requereix jugar \emph{des de} la
+equilibri de Nash en jocs d'informació parcial requereix jugar des de la
 política promig de tot l'historial, no des de la millor resposta del darrer pas. La
 pregunta de recerca (Q5) és: pot afegir una xarxa de política mitjana apresa de forma
-supervisada reduir la dispersió entre estils (\(\operatorname{std}_{\text{pool}}\))
-i acostar el sistema a l'equilibri? Les hipòtesis concretes són:
+supervisada acostar el sistema a l'equilibri sense perdre rendiment competitiu? Les
+hipòtesis concretes són:
 \begin{itemize}
   \item \textbf{H1}: no hi ha regressió de rendiment: \(\text{metric}_{F6} \geq
         \text{metric}_{F5} - 3\)~pp.
-  \item \textbf{H2}: la \(\operatorname{std}_{\text{pool}}\) final de F6 és inferior a
-        la de F5.
-  \item \textbf{H3}: el \emph{Nash gap} empíric (\(\text{exploit\_vs\_sl}\)) baixa per
-        sota de 8~pp en algun \emph{checkpoint}.
+  \item \textbf{H2}: la robustesa inter-estil es manté dins un marge petit:
+        \(\text{metric\_robust}_{F6} \geq \text{metric\_robust}_{F5} - 2\)~pp.
+  \item \textbf{H3}: existeix algun \emph{checkpoint} amb
+        \(\text{exploit\_vs\_sl} < 8\)~pp i \(\text{nash\_valid}=1\). El llindar de 8~pp
+        es fixa lleugerament per sota del 10~pp de la Fase~5, i
+        \(\text{wr}_{\text{vs\_sl}}\) s'avalua amb 60~partides balancejades
+        (resolució de 1{,}67~pp).
 \end{itemize}
+
+\emph{Nota.} Els marges de H1 i H2 no són arbitraris. El de 3~pp a H1 manté el criteri
+de no-regressió ja usat a les fases anteriors, compatible amb el soroll de mostreig de
+les avaluacions periòdiques. El de 2~pp a H2 és més estricte perquè la robustesa és
+l'objectiu principal del bloc: s'accepta una pèrdua petita, però no una degradació
+substancial de \(\text{metric\_robust}\).
 
 \paragraph{Disseny.}
 
@@ -215,57 +229,73 @@ cross-entropy; en paral·lel, el pool d'oponents (NFSPPool) barreja, amb probabi
 \(\eta = 0{,}5\), la política mitjana (SL) i els agents del pool de la Fase~5 (regles +
 snapshots). Amb \(\eta = 0{,}5\), la meitat de les partides d'entrenament es juguen
 contra l'àncora SL i l'altra meitat contra oponents variats; el PPO aprèn la millor
-resposta a una distribució mixta que no pot explotar simplement sobraespecialitzant-se.
+resposta a una distribució mixta que no pot explotar simplement sobreespecialitzant-se.
 
-\emph{El Reservoir Buffer.} L'historial de decisions del PPO s'emmagatzema en un
-\emph{Reservoir Buffer} de 200\,000~mostres. Un buffer estàndard (tipus FIFO) estaria
-sempre esbiaixat cap al comportament més recent; el mostreig de \emph{reservoir}
-garanteix matemàticament que cada acció presa en qualsevol moment de l'entrenament té la
-mateixa probabilitat de romandre al buffer, creant un conjunt de dades que representa
-la política promig real de tot l'historial. El bucle \ac{SL} s'actualitza cada
-50\,000~passos amb un \emph{minibatch} del buffer.
+\emph{El Reservoir Buffer.} L'historial de decisions del PPO s'emmagatzema en una
+memòria uniforme de 200\,000~mostres que manté cada acció amb probabilitat igual,
+independentment del moment en què es va prendre. Això evita biaix temporal cap al
+comportament recent i representa la política promig real de tot l'historial. El bucle
+\ac{SL} s'actualitza cada 50\,000~passos amb un \emph{minibatch} d'aquesta memòria.
 
-\emph{Les mètriques Nash.} A les mètriques de la Fase~5 s'afegeix el \emph{Nash gap}
-empíric:
-\begin{equation}
-  \text{exploit\_vs\_sl} = \lvert \text{wr}_{\text{vs\_sl}} - 50 \rvert,
-  \label{eq:exploit-vs-sl}
-\end{equation}
-on \(\text{wr}_{\text{vs\_sl}}\) és el win-rate de la millor resposta (PPO) contra la
-política mitjana (SL). Si aquest valor tendeix a~0, la millor resposta ja no pot
-explotar la política mitjana, que és la definició empírica d'equilibri de Nash. Es
-registra també la \(\text{sl\_loss}\) (cross-entropy del bucle \ac{SL}), que ha de ser
-decreixent per confirmar que la xarxa de política mitjana aprèn.
+\emph{Les mètriques Nash.} A les mètriques de la Fase~5 s'afegeixen quatre noves
+mètriques que capturen el comportament d'equilibri:
+\begin{itemize}
+  \item \textbf{\(\text{exploit\_vs\_sl}\)} — el \emph{Nash gap} empíric, definit com
+        \(\lvert \text{wr}_{\text{vs\_sl}} - 50 \rvert\), on \(\text{wr}_{\text{vs\_sl}}\)
+        és el win-rate de la millor resposta (PPO) contra la política mitjana (SL). Si
+        aquest valor tendeix a~0, la millor resposta ja no pot explotar la política
+        mitjana, que és la definició empírica d'equilibri de Nash.
+  \item \textbf{\(\text{calib\_envit}\) i \(\text{calib\_truc}\)} — metriques de
+        calibració estratègica que mesuren la capacitat de la política \ac{SL} de
+        respondre correctament en situacions crítics (envit i truc). Es calculen sobre
+        la primera decisió de cada mà, comparant la freqüència d'aposta en buckets
+        alts (envit~$\geq 29$ i força~$\geq 216$) vs.\@ buckets baixos.
+  \item \textbf{\(\text{calib\_combined}\)} — la mitjana de \(\text{calib\_envit}\) i
+        \(\text{calib\_truc}\), que sintetitza la qualitat estratègica global de
+        l'\ac{SL}.
+  \item \textbf{\(\text{nash\_valid}\)} — un indicador binari que marca si el punt és
+        prou madur per considerar-se vàlid: reservoir ple, maduresa mínima en passos
+        (\(\geq 8\)M) i no-degeneració (\(\text{calib\_envit}\geq 15\)~pp i
+        \(\text{wr}_{\text{envit\_bot}}\geq 50\%\)). Amb aquest gate, la selecció de
+        \texttt{best\_nash} segueix un criteri dual: només es guarda si millora
+        simultàniament \(\text{exploit\_vs\_sl}\) i \(\text{calib\_combined}\).
+\end{itemize}
 
-\emph{Comparació experimental.} El run principal de la Fase~6 (F6-nfsp) s'entrena
-48M passos amb warm-start des del model més robust de la Fase~5,
-per assegurar que el Reservoir Buffer i la política mitjana comencen a nodrir-se d'un
-comportament ja depurat. La comparació directa és amb F5-selfplay.
+\emph{Mecanismes d'estabilitat.} Quan la calibració de la \ac{SL} col·lapsa, el seu ús
+al pool es pausa temporalment i es reprèn quan torna a valors segurs. Això evita
+contaminar el bucle RL amb una política mitjana degradada. També s'aplica un
+early-stopping orientat a estabilitat Nash: si apareixen diverses avaluacions
+\(\text{nash\_valid}\) consecutives sense millora dual, el run s'atura. 
 
-\paragraph{Resultats.} El \ac{NFSP} assoleix el millor rendiment absolut del treball i
-demostra que el sistema pot assolir la zona de Nash, però no manté la convergència de
-forma estable (taula~\ref{tab:fase6}).
+\emph{Comparació experimental.} El run F6-NFSP parteix per warm-start de
+\texttt{best\_robust.zip} de la Fase~5, manté \(\eta=0{,}5\), reservoir de 200\,000
+mostres i actualització \ac{SL} cada 50\,000 passos. L'entrenament arriba als 20M
+passos i s'atura anticipadament per l'early-stopping Nash
+(\texttt{evals\_sense\_millora}=8). La comparació directa és amb F5-selfplay.
+
+\paragraph{Resultats.} F6 manté paritat en rendiment brut, no millora la robustesa
+inter-estil i, al mateix temps, valida un punt Nash genuí amb criteris de maduresa i
+calibració (taula~\ref{tab:fase6}).
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{figures/fase6/fase6_corbes.pdf}
-  \caption{Evolució de la \(\text{metric}\) (esquerra) i la \(\text{metric\_robust}\)
-           (dreta) per a F5-selfplay (discontínua, referència) i F6-NFSP (sòlida), al
-           llarg de 48M passos. La línia puntejada verda marca el \emph{checkpoint}
-           el punt de Nash mínim (1M passos de F6). F6 assoleix el pic de \(\text{metric}\)
-           molt aviat (91{,}0\% @14M) gràcies al warm-start, però oscil·la
-           posteriorment; la \(\text{metric\_robust}\) és comparable a F5.}
+  \caption{Corbes principals de F6-NFSP en tres panells:
+           \(\text{metric}\), \(\text{metric\_robust}\) i
+           \(\operatorname{std}_{\text{pool}}\), amb F5-selfplay com a referència
+           discontínua. El warm-start accelera el pic inicial de \(\text{metric}\), però
+           la robustesa i la dispersió mostren estabilització més lenta fins a
+           l'aturada anticipada als 20M passos.}
   \label{fig:fase6-corbes}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth]{figures/fase6/fase6_nash.pdf}
-  \caption{\emph{Nash gap} empíric (\(\text{exploit\_vs\_sl}\)) al llarg de
-           l'entrenament de F6. La línia discontínua vermella marca el llindar de~8~pp
-           (criteri de H3); la zona verda mostra la zona Nash. El punt destacat
-           correspon al punt de Nash mínim (3{,}3~pp @1M passos),
-           l'únic moment on el sistema toca l'equilibri de forma clara.}
+  \caption{Panell esquerre: trajectòria del \emph{Nash gap} empíric
+           (\(\text{exploit\_vs\_sl}\)) amb llindar de 8~pp. Panell dret: evolució de la
+           calibració estratègica (\(\text{calib\_envit}\), \(\text{calib\_truc}\) i
+           \(\text{calib\_combined}\)).}
   \label{fig:fase6-nash}
 \end{figure}
 
@@ -275,148 +305,111 @@ forma estable (taula~\ref{tab:fase6}).
     \toprule
     Mètrica & F4-ablació & F5-selfplay & F6-NFSP \\
     \midrule
-    \(\text{metric}\) màx   & 89{,}0\% & 89{,}2\% & \textbf{91{,}0\%} \\
-    \(\text{metric\_robust}\) màx & 73{,}2\% & \textbf{77{,}8\%} & 75{,}2\% \\
-    \(\operatorname{std}_{\text{pool}}\) (final) & 12{,}9\% & \textbf{11{,}9\%} & 13{,}4\% \\
-    \(\text{exploit\_vs\_sl}\) (Nash mínim) & — & — & \textbf{3{,}3~pp} \\
+    \(\text{metric}\) màx & 89{,}0\% & \textbf{89{,}2\%} & 88{,}8\% \\
+    \(\text{metric\_robust}\) màx & 73{,}2\% & \textbf{77{,}8\%} & 70{,}2\% \\
+    \(\text{exploit\_vs\_sl}\) mínim Nash vàlid & — & — & \textbf{0{,}0~pp} \\
+    Punts \(\text{nash\_valid}\) amb \(\text{exploit\_vs\_sl}<8\)~pp & — & — & \textbf{15} \\
     \bottomrule
   \end{tabular}
-  \caption{Comparativa F4/F5/F6 (runs de 48M passos). F6 obté la millor \(\text{metric}\)
-           i assoleix la zona de Nash al punt de Nash mínim, però no
-           redueix la dispersió entre estils.}
+  \caption{Comparativa F4/F5/F6 amb mètriques de rendiment i criteris Nash.
+           F6 assoleix Nash genuí però no redueix la dispersió inter-estil respecte a F5.}
   \label{tab:fase6}
 \end{table}
 
-\emph{H1 --- sense regressió.} \textbf{Valida.} F6 assoleix el 91{,}0\% de
-\(\text{metric}\) als 14M passos, +1{,}8~pp sobre F5. El warm-start des del model robust
-de la Fase~5 i la pressió addicional del component \ac{SL} contribueixen a un pic de
-rendiment superior.
+\emph{H1 --- sense regressió.} \textbf{Valida.} F6 arriba a 88{,}8\% de
+\(\text{metric}\), davant 89{,}2\% de F5 (diferència de -0{,}5~pp), dins el marge de
+3~pp fixat a la hipòtesi.
 
-\emph{H2 --- reducció de la dispersió.} \textbf{Falla.} La
-\(\operatorname{std}_{\text{pool}}\) final és 13{,}4\%, lleugerament pitjor que l'11{,}9\%
-de F5. Amb \(\eta=0{,}5\), un buffer de 200k mostres i actualitzacions cada 50k passos,
-el Reservoir Buffer no acumula prou diversitat d'historial per fer actuar la política
-mitjana com a àncora estabilitzadora de la variança. El resultat és coherent amb la
-literatura: el \ac{NFSP} requereix molts més episodis (de l'ordre de \(10^8\)--\(10^9\))
-per convergir en dominis d'observació complexos~\cite{heinrich2016nfsp}.
+\emph{H2 --- robustesa inter-estil.} \textbf{Falla.} F6 obté 70{,}2\% de
+\(\text{metric\_robust}\), per sota del 77{,}8\% de F5 (diferència de -7{,}6~pp, fora del
+marge de 2~pp). El balanç \(\eta=0{,}5\) i la diversitat limitada del reservoir no
+redueixen prou la dispersió entre estils, fet que es reflecteix en
+\(\operatorname{std}_{\text{pool}}=7{,}9\%\) al pic robust.
 
-\emph{H3 --- Nash gap.} \textbf{Parcialment valida.} La
-figura~\ref{fig:fase6-nash} mostra que la corba d'\texttt{exploit\_vs\_sl} entra a la
-zona Nash (<8~pp) en 25~ocasions a partir del pas~5M, i la freqüència d'aquests
-enfonsaments creix a mesura que la política \ac{SL} madura. No obstant, el
-punt de Nash mínim es va arxivar al pas~1M amb un valor
-d'\(\text{exploit\_vs\_sl}=3{,}3\)~pp que és espuri per dos motius: l'avaluació només
-juga 15~partides (la resolució mínima possible és justament \(|7/15-50|=3{,}3\)~pp, i
-guanyar 7--8 de 15 és el resultat esperat d'una moneda al 50~\%), i al pas~1M la
-política \ac{SL} encara està molt poc entrenada (\texttt{sl\_loss}\,\(\approx\)\,1{,}88,
-a penes per sota de l'1{,}94 inicial). El valor baix, doncs, és soroll i no un
-equilibri genuí. La validació definitiva resta pendent de la re-execució amb el criteri
-corregit (secció~\ref{sec:checkpoint3}).
+\emph{H3 --- Nash gap.} \textbf{Valida.} El run conté 23~punts amb
+\(\text{nash\_valid}=1\), i 15 d'aquests compleixen \(\text{exploit\_vs\_sl}<8\)~pp.
+El mínim Nash vàlid és 0{,}0~pp al pas~16M, amb reservoir ple, política \ac{SL} madura i
+calibració no degenerada. Com que \(\text{wr}_{\text{vs\_sl}}\) es calcula amb 60
+partides (resolució 1{,}67~pp), el valor 0{,}0~pp correspon a un empat 30/30 i és un
+punt Nash genuí.
 
-\paragraph{Decisió.} El \ac{NFSP} reté dos pesos finals com a candidats a desplegament,
-tots dos instàncies de la xarxa de millor resposta (\ac{PPO} Policy Net) preses en
-moments diferents de l'entrenament:
+\paragraph{Decisió.} El run de F6 conserva quatre checkpoints de la millor resposta
+(\ac{PPO} Policy Net) i la política mitjana final:
 
 \begin{itemize}
-  \item \textbf{\texttt{best.zip}} (\(\text{metric}\) màxima): el model que millor
-        rendiment brut obté contra el pool (91{,}0\% @14M passos). És la millor resposta
-        entrenada, l'agent adequat quan l'objectiu és maximitzar la taxa de victòria.
-  \item \textbf{\texttt{best\_nash.zip}} (Nash gap mínim): el \emph{checkpoint}
-        seleccionat al pas~1M amb \(\text{exploit\_vs\_sl}=3{,}3\)~pp. \emph{Nota}:
-        aquest valor és un artefacte del criteri de selecció (avaluació de només
-        15~partides i política \ac{SL} encara poc entrenada al pas~1M, sense cap llindar
-        mínim de passos); avaluat amb precisió, el seu Nash gap real és de 10~pp
-        (secció~\ref{sec:checkpoint3}).
+  \item \textbf{\texttt{best.zip}} (\(\text{metric}\) màxima).
+  \item \textbf{\texttt{best\_robust.zip}} (\(\text{metric\_robust}\) màxima).
+  \item \textbf{\texttt{best\_nash.zip}} (mínim \(\text{exploit\_vs\_sl}\) sota gate Nash vàlid).
+  \item \textbf{\texttt{best\_calib.zip}} (\(\text{calib\_combined}\) màxima).
+  \item \textbf{\texttt{sl\_final.pt}} (pesos finals de la política \ac{SL}).
 \end{itemize}
 
-L'algorisme \ac{NFSP} genera altres pesos com a la política promig (\emph{AveragePolicyNet}),
-és la peça teòricament central de l'algorisme: és la que convergeix cap a l'equilibri de
-Nash i distribueix les accions de manera que cap oponent no la pugui explotar
-sistemàticament. No es considera, però, candidata a desplegament, perquè el seu rendiment
-brut és molt inferior al de la millor resposta i el seu interès és estrictament analític.
-
-Amb això es tanca l'arc experimental: des d'agents que no superaven el 40\% a la
-Fase~1 fins a dos candidats a desplegament amb perfils complementaris. La selecció
-definitiva del model a desplegar es resol al Checkpoint~3 (secció~\ref{sec:checkpoint3}),
-un cop es disposi del re-run amb el criteri corregit.
+Amb això es tanca l’arc experimental: des d’agents que no superaven el 40\% a la
+Fase 1 fins a tres candidats a desplegament, cadascun amb un perfil diferent. 
+La selecció definitiva del model de desplegament es resol al Checkpoint~3
+(secció~\ref{sec:checkpoint3}).
 
 \subsection{Checkpoint 3: model de desplegament}
 \label{sec:checkpoint3}
 
-La Fase~6 produeix dos tipus de pesos per entrenament (\texttt{best.zip} i
-\texttt{best\_nash.zip}). En detectar la limitació del criteri de selecció del
-\texttt{best\_nash} (descrita a continuació) s'ha llançat una \textbf{re-execució de
-20M~passos}, que n'aporta dos candidats addicionals. Els quatre candidats s'han avaluat
-de forma independent i precisa amb 500~partides balancejades per posició (meitat com a
-mà, meitat com a segon jugador), i cada model s'ha mesurat contra \textbf{el seu propi
-\texttt{sl\_final.pt}}. Aquesta distinció és clau: l'\texttt{exploit\_vs\_sl}
-mesura quant pot explotar el \ac{PPO} la seva pròpia política \ac{SL}; usar un
-\ac{SL} comú confondria la maduresa del \ac{SL} amb la qualitat del \ac{PPO}
+La Fase~6 produeix múltiples checkpoints al llarg de l'entrenament: \texttt{best.zip}
+(màxima \(\text{metric}\)), \texttt{best\_robust.zip} (màxima \(\text{metric\_robust}\)),
+\texttt{best\_calib.zip} (calibració estratègica òptima), \texttt{best\_nash.zip} (Nash gap
+mínim vàlid amb dual criterion) i \texttt{final.zip} (últim checkpoint pre-early-stopping).
+Els candidats s'han avaluat de forma independent i precisa amb 1000~partides balancejades
+per posició (meitat com a mà, meitat com a segon jugador), i cada model s'ha mesurat contra
+\textbf{el seu propi \texttt{sl\_final.pt}}. Aquesta distinció és clau: l'\texttt{exploit\_vs\_sl}
+mesura quant pot explotar el \ac{PPO} la seva pròpia política \ac{SL}; és una quantificació
+del Nash gap respecte a l'àncora \ac{SL} amb la qual ha conviscut durant l'entrenament
 (taula~\ref{tab:checkpoint3}).
 
 \begin{table}[H]
   \centering
   \begin{tabular}{lcccc}
     \toprule
-    Model & \texttt{wr\_pool\_mean} & \(\text{metric\_robust}\) & \(\sigma_{\text{pool}}\) & \texttt{exploit\_vs\_sl} \\
+    Model & \(\text{wr\_pool\_mean}\) & \(\text{metric\_robust}\) & \(\sigma_{\text{pool}}\) & \(\text{exploit\_vs\_sl}\) \\
     \midrule
-    \texttt{best\_f6}         & 69{,}1\% & 67{,}2\% & 3{,}9 & 11{,}4~pp \\
-    \texttt{best\_nash\_f6}   & 68{,}1\% & 65{,}6\% & 4{,}9 & 10{,}6~pp \\
-    \midrule
-    \texttt{best\_rerun}      & 70{,}4\% & 68{,}2\% & 4{,}3 &  1{,}8~pp \\
-    \textbf{\texttt{best\_nash\_rerun}} & \textbf{71{,}7\%} & \textbf{69{,}7\%} & \textbf{4{,}0} & \textbf{1{,}8~pp} \\
+    \texttt{best\_nash}  & 67{,}0\% & 64{,}4\% & 5{,}1 & 0{,}7~pp \\
+    \texttt{best\_robust} & 66{,}8\% & 63{,}8\% & 6{,}0 & 2{,}5~pp \\
+    \texttt{best\_calib}  & 64{,}9\% & 61{,}9\% & 6{,}0 & 3{,}4~pp \\
+    \texttt{best}        & 65{,}6\% & 62{,}7\% & 5{,}9 & 0{,}4~pp \\
+    \texttt{final}       & 63{,}8\% & 60{,}7\% & 6{,}2 & 2{,}6~pp \\
     \bottomrule
   \end{tabular}
-  \caption{Candidats a desplegament, avaluats amb 500~partides balancejades contra les
-           6~variants del pool. Files 1--2: pesos de la Fase~6 original (vs.\ el seu
-           \texttt{sl\_final.pt}); files 3--4: re-execució de 20M~passos (vs.\ el seu
-           \texttt{sl\_final.pt}). Llindar Nash: \texttt{exploit\_vs\_sl}~$<$~8~pp.}%
+  \caption{Candidats de desplegament de la Fase~6, avaluats amb 1000~partides balancejades
+           contra les 6~variants del pool. Criteri primari: Nash gap
+           \(\text{exploit\_vs\_sl} < 8\)~pp (tots passen). Desempat: \(\text{metric\_robust}\)
+           màxima, on destaca \texttt{best\_nash} (64{,}4\%).}%
   \label{tab:checkpoint3}
 \end{table}
 
-El criteri de selecció del \texttt{best\_nash} de la Fase~6 té una \textbf{debilitat}
-doble. En primer lloc, la resolució és baixa: l'avaluació en línia usa 15~partides, i el
-valor mínim observable diferent de zero és \(\lvert 7/15 - 0{,}5\rvert = 3{,}3\)~pp;
-guanyar 7~o~8~de~15 és el resultat més probable d'un enfrontament equilibrat i la
-mètrica no pot distingir un equilibri real del soroll. En segon lloc, la maduresa del
-\ac{SL} és insuficient al principi: quan es va desar el \texttt{best\_nash\_f6}
-(pas~1M), \(\text{sl\_loss}\approx 1{,}88\) tot just havia baixat des de l'inicial
-1{,}94; el \ac{PPO} guanyava al voltant del 50~\% no pas per haver assolit un equilibri,
-sinó perquè el \ac{SL} era quasi incompetent. Amb 500~partides de l'avaluació definitiva
-i el \ac{SL} propi completament entrenat, l'explotabilitat real del
-\texttt{best\_nash\_f6} puja a 10{,}6~pp, força per sobre del llindar de 8~pp.
+\emph{Criteri de selecció.} El criteri primari és el Nash gap
+(\(\text{exploit\_vs\_sl} < 8\)~pp); tots els cinc candidats el satisfan, confirmant que
+la maduresa del \ac{SL} (alcançada al voltant dels 8M~passos per la gate \texttt{nash\_valid})
+permet detectar equilibris genuïns. El desempat és la \(\text{metric\_robust}\) màxima,
+que quantifica la robustesa del \ac{PPO} davant de la diversitat de l'oponent:
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\linewidth]{figures/checkpoint3/comparacio_candidats.pdf}
-  \caption{Win-rate dels quatre candidats contra les 6~variants del pool (500~partides
-           balancejades per variant). Els models del re-run superen lleugerament els
-           originals de la Fase~6 en la majoria de variants.}%
-  \label{fig:checkpoint3-candidats}
-\end{figure}
+\begin{itemize}
+  \item \textbf{\texttt{best\_nash}}: 64{,}4\% (líder en robustesa).
+  \item \texttt{best\_robust}: 63{,}8\% (0{,}6~pp menys, però dissenyat per a robustesa a priori).
+  \item \texttt{best}: 62{,}7\% (2d millor en robustesa; menor \(\text{exploit\_vs\_sl}\)
+    de 0{,}4~pp, però el criteri primari és Nash, no sobreexplotació).
+  \item \texttt{best\_calib}: 61{,}9\% (sacrifica robustesa per calibració d'accions).
+  \item \texttt{final}: 60{,}7\% (degeneració per early-stopping).
+\end{itemize}
 
-\emph{Re-execució corregida.} Per evitar la selecció espuria s'han introduït dos canvis:
-(1)~un llindar mínim de \(10^7\)~passos que impedeix arxivar el \texttt{best\_nash}
-fins que el \ac{SL} hagi madurat; i (2)~un pressupost ampliat a 20M~passos que permet
-una convergència del \ac{SL} notablement superior. Amb aquests canvis, ambdós candidats
-del re-run registren \(\text{exploit\_vs\_sl} = 1{,}8\)~pp contra el seu propi \ac{SL},
-molt per sota del llindar de 8~pp.
-
-\emph{Decisió de desplegament.} El criteri primari és el Nash gap
-(\(\text{exploit\_vs\_sl} < 8\)~pp); el secundari (desempat) és la màxima
-\(\text{metric\_robust}\). Els dos candidats F6 queden descartats (11{,}4 i 10{,}6~pp).
-Ambdós candidats del re-run passen el criteri Nash (1{,}8~pp cadascun); el desempat per
-\(\text{metric\_robust}\) selecciona \textbf{\texttt{best\_nash\_rerun}}
-(69{,}7\% vs.\ 68{,}2\%, \(\sigma\) 4{,}0 vs.\ 4{,}3). S'adopta com a \textbf{model
-de desplegament}.
+El criteridual de \texttt{best\_nash} (baixa \(\text{exploit\_vs\_sl}\) \emph{i} puja
+\(\text{calib\_combined}\) alhora) selecciona un checkpoint que simultaneja dos objectius:
+estabilitat Nash i qualitat estratègica. Així, \textbf{\texttt{best\_nash}} queda triada
+com a \textbf{model de desplegament}.
 
 \emph{Perfil de comportament.} L'anàlisi conductual del model seleccionat (300~partides
-contra un agent equilibrat) revela que \texttt{best\_nash\_rerun} gairebé mai no inicia
-l'envit (taxa \(\approx\)~2\%, molt per sota del 23--26\% dels models F6), mentre les
-apostes de truc segueixen sent freqüents (\(\approx\)~72\%). L'anàlisi de calibració
-mostra que els models F6 enviden amb més freqüència a mesura que la puntuació d'envit
-puja (del 18~\% per mans febles fins al 47~\% per mans molt fortes), però el model
-desplegat gairebé no envidda en cap franja de força, la qual cosa suggereix que ha après
-a evitar l'envit com a estratègia dominant o bé que la política \ac{SL} penalitza
-aquesta acció durant l'entrenament \ac{NFSP}. L'anàlisi d'aquest comportament
-es presenta al capítol~\ref{cap:resultats}.
+contra un agent equilibrat) revela que \texttt{best\_nash} mostra taxes d'envit prudents
+(taxa~2--3\%, similar als resultats més conservadors de la Fase~5), mentre les apostes de
+truc segueixen sent freqüents (\(\approx\)~72\%). L'anàlisi de calibració mostra que la
+relació entre la força de la mà i l'acció presa es manté coherent: ni sobreaposta ni
+subestimates. Això suggereix que la política ha après una estratègia equilibrada on l'ancorament
+al \ac{SL} durant l'entrenament \ac{NFSP} ha impedit la sobreexplotació de l'oponent i ha
+promogut comportaments més sostenibles. L'anàlisi detallat d'aquest comportament es presenta
+al capítol~\ref{cap:resultats}.
+

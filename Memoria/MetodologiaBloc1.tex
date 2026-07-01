@@ -3,7 +3,7 @@
 \section{Bloc 1: línia base i \emph{curriculum learning}}
 \label{sec:bloc1}
 
-El primer bloc estableix un punt de partida rigorós (Fase~1) i introdueix la primera
+El primer bloc estableix un punt de partida (Fase~1) i introdueix la primera
 tècnica que trenca el sostre de rendiment inicial (Fase~2, \emph{curriculum learning}).
 El Checkpoint~1 tanca el bloc seleccionant els dos models que continuen.
 
@@ -41,14 +41,17 @@ l'algorisme i no a l'arquitectura.
   \label{tab:fase1-algorismes}
 \end{table}
 
-\emph{Avaluació en dues òptiques.} Com que els algorismes tenen velocitats molt
-diferents, comparar-los només per passos seria injust amb els paral·lelitzables. Per això
-es mesura el rendiment sota dues òptiques complementàries:
+\emph{Dos entrenaments per agent:} pressupost de passos i pressupost de temps. Com que els
+algorismes tenen velocitats molt diferents, comparar-los amb un únic criteri d'aturada seria
+injust amb els paral·lelitzables. Per això cada agent s'entrena \textbf{dues vegades}, un
+entrenament independent per a cada pressupost:
 \begin{itemize}
-  \item \textbf{Per passos} (5~milions): la qualitat assolida després del mateix nombre de
-        passos d'entrenament (eficiència per mostra).
-  \item \textbf{Per temps real} (4~hores per agent): la qualitat assolida amb el mateix
-        pressupost temporal (rendiment efectiu segons la velocitat d'entrenament).
+  \item \textbf{Pressupost de passos} (5~milions): l'entrenament s'atura en assolir el
+        mateix nombre de passos, amb independència del temps que hi dediqui cada algorisme.
+        Mesura l'eficiència per mostra.
+  \item \textbf{Pressupost de temps} (4~hores per agent): l'entrenament s'atura en exhaurir
+        el mateix temps de còmput, amb independència dels passos que hi càpiguen. Mesura el
+        rendiment efectiu segons la velocitat d'entrenament.
 \end{itemize}
 
 \emph{Oponents.} Cada agent s'entrena contra una barreja d'oponents
@@ -56,7 +59,7 @@ es mesura el rendiment sota dues òptiques complementàries:
 l'agent aleatori (per mantenir diversitat i explorar estats poc habituals) i un gruix
 de l'agent basat en regles (el senyal estratègic principal). La diferència és el
 \emph{self-play}: els agents de RLCard (DQN i NFSP) el suporten de manera nativa, de manera
-que un 30\% de les partides es juguen contra una versió del propi agent. En el cas del DQN,
+que un 30\% de les partides es juguen contra una versió del propi agent, en canvi, els agents de \ac{SB3} no incorporen self-play. En el cas del DQN,
 aquesta versió és una còpia \emph{Polyak} que s'actualitza lentament (un 5\% cap als pesos  
 actuals cada 5\,000~passos): així l'oponent millora amb l'agent però no canvia tan de
 pressa com per desestabilitzar l'aprenentatge.
