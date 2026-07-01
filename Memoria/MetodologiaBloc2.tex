@@ -9,12 +9,13 @@ de l'estat (Fase~3, dividida en arquitectura i inicialització del cos) i dotar 
 \emph{memòria} entre mans (Fase~4). El Checkpoint~2 tanca el bloc fixant el model que
 s'adopta per a desplegament.
 
-\subsection{Fase 3: el feature extractor COS}
+\subsection{Fase 3: extractor de característiques COS}
 \label{sec:fase3}
 
 \begin{sloppypar}
-La Fase~3 estudia \emph{CosMultiInput}, un \emph{feature extractor} convolucional
-propi, com a alternativa a l'extractor pla per defecte de \ac{SB3}.
+La Fase~3 estudia \emph{CosMultiInput}, un extractor de característiques convolucional
+propi (el \emph{cos}, o COS, de la xarxa: la seva columna vertebral de processament),
+com a alternativa a l'extractor pla per defecte de \ac{SB3}.
 L'estudi respon dues preguntes acoblades: si l'\textbf{arquitectura} convolucional
 aporta valor per si sola (Q1, secció~\ref{sec:fase3-arq}) i si
 \textbf{inicialitzar-la} amb coneixement previ del joc desbloqueja un rendiment
@@ -144,19 +145,11 @@ de mans amb una representació prou rica i la \ac{CNN} no hi aporta res addicion
     Mans       & PPO-SB3 & 89{,}0\% & 87{,}2\% & $+1{,}8$ \\
     \bottomrule
   \end{tabular}
-  \caption{Pic de \(\text{metric}\) (24M passos) per a COS amb pesos aleatoris vs \ac{MLP}.}
+  \caption{Pic del win-rate ponderat (\(\text{metric}\)) a 24M passos per a COS amb pesos
+           aleatoris vs \ac{MLP}. El COS només supera clarament el \ac{MLP} al control de
+           DQN-SB3; al protocol de mans (el millor en absolut) la diferència és marginal.}
   \label{tab:fase3}
 \end{table}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{figures/fase3/fase3_cos_vs_mlp.pdf}
-  \caption{Pic de \(\text{metric}\) (24M passos) per protocol i agent, COS amb pesos
-           aleatoris vs \ac{MLP}. La línia discontínua marca el 80\%. El COS només supera
-           clarament el \ac{MLP} al control de DQN-SB3; al protocol de mans (el millor en
-           absolut) la diferència és marginal.}
-  \label{fig:fase3-cos-mlp}
-\end{figure}
 
 \paragraph{Decisió.} Es fixa el protocol de mans per a la resta del bloc. Com que el COS
 amb pesos aleatoris no arrenca amb cap avantatge representacional, la pregunta natural és
@@ -279,8 +272,8 @@ entre 87--89\%, de manera que el preentrenament hi aporta poc.
     Finetune             & 88{,}5\% & 88{,}0\% \\
     \bottomrule
   \end{tabular}
-  \caption{Pic de \(\text{metric}\) (protocol mans, 24M passos) per als quatre règims
-           d'inicialització del cos.}
+  \caption{Pic del win-rate ponderat (\(\text{metric}\)) al protocol de mans (24M passos)
+           per als quatre règims d'inicialització del cos.}
   \label{tab:fase35}
 \end{table}
 

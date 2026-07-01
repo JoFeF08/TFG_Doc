@@ -233,30 +233,45 @@ el que va aprendre sobre mans en exposar-se a les partides. Un segon risc és el
 distribució, ja que la distribució de mans amb el marcador a 0--0 difereix de la que
 apareix amb el marcador avançat.
 
-\paragraph{Resultats.} La taula~\ref{tab:fase2-12m} mostra que, a igualtat de pressupost
-(12M passos), entrenar sobre mans és \emph{uniformement} superior a entrenar sobre
-partides per als quatre agents, amb diferències espectaculars per als agents \ac{SB3}
-(+42 i +56~punts percentuals). Aquesta és la validació clau: l'entorn per mans aporta un
-senyal d'aprenentatge qualitativament millor. Ara bé, la taula~\ref{tab:fase2-24m} mostra
-que la transferència d'aquest aprenentatge a partides senceres (després del \emph{finetune})
-no és universal: només 2~de 4 agents en surten beneficiats al pressupost total. El coll
-d'ampolla passa a ser la transferència, no l'aprenentatge inicial.
+\paragraph{Resultats.} L'anàlisi separa les dues etapes i, per no confondre un pic
+transitori amb el rendiment assolit, reporta el \textbf{valor final} de cada entrenament
+(en acabar el pressupost), no el màxim.
+
+\emph{Etapa 1 (mans): un salt per als agents \ac{SB3}.} A igualtat de pressupost (12M
+passos, taula~\ref{tab:fase2-12m}), entrenar sobre mans dispara els dos agents \ac{SB3}
+respecte a entrenar directament sobre partides: DQN-SB3 passa del 37{,}2\% al 68{,}0\% i
+PPO-SB3, l'agent més feble de la Fase~1, del 3{,}8\% al 84{,}8\% (+81~pp). En canvi, per als
+agents de RLCard l'efecte és marginal (DQN-RLCard +2{,}3~pp) o fins i tot advers
+(NFSP-RLCard $-3{,}0$~pp): el sostre estructural de RLCard ja observat a la Fase~1 no el
+trenca el canvi d'entorn. L'entorn per mans aporta, doncs, un senyal d'aprenentatge molt
+més ric, però només els agents amb prou capacitat (els \ac{SB3}) el saben aprofitar.
+
+\emph{Etapa 2 (finetune sobre partides): el segon entrenament degrada.} En transferir els
+pesos de mans a partides senceres, el rendiment \textbf{cau} en tots els agents
+(taula~\ref{tab:fase2-24m} i figures~\ref{fig:fase2-curriculum-rlcard}
+i~\ref{fig:fase2-curriculum-sb3}). El màxim de l'etapa~2 s'assoleix sempre al
+\emph{principi} —PPO-SB3 marca el seu (75{,}0\%) al primer punt d'avaluació (0{,}5M passos
+de finetune) i DQN-SB3 el seu (56{,}0\%) a 1M— i després el finetune l'erosiona fins al
+7{,}8\% (PPO-SB3) i al 41{,}5\% (DQN-SB3). Aquest màxim inicial és, de fet, el model heretat
+de l'etapa de mans; el finetune sobre partides no hi afegeix res i el desfà. En acabar, els
+dos \ac{SB3} queden per sota del seu propi control (41{,}5\% vs 54{,}0\%; 7{,}8\% vs
+11{,}5\%): el segon entrenament, tal com està plantejat, és perjudicial.
 
 \begin{table}[H]
   \centering
   \begin{tabular}{lrrr}
     \toprule
-    Agent & Control 12M & Curriculum 12M (mans) & $\Delta$ \\
+    Agent & Control 12M & Mans 12M & $\Delta$ \\
     \midrule
-    DQN-RLCard  & 18{,}2\% & 26{,}0\% & $+7{,}8$ \\
-    NFSP-RLCard & 25{,}2\% & 27{,}2\% & $+2{,}0$ \\
-    DQN-SB3     & 44{,}0\% & 86{,}2\% & $+42{,}2$ \\
-    PPO-SB3     & 30{,}8\% & 87{,}2\% & $+56{,}5$ \\
+    DQN-RLCard  & 15{,}2\% & 17{,}5\% & $+2{,}3$ \\
+    NFSP-RLCard & 21{,}8\% & 18{,}8\% & $-3{,}0$ \\
+    DQN-SB3     & 37{,}2\% & \textbf{68{,}0\%} & $+30{,}8$ \\
+    PPO-SB3     & 3{,}8\%  & \textbf{84{,}8\%} & $+81{,}0$ \\
     \bottomrule
   \end{tabular}
-  \caption{Comparació a 12M passos (mateix pressupost, avaluació sobre partides). El
-           win-rate ponderat (\(\text{metric}\)) entrenant sobre mans és uniformement
-           superior.}
+  \caption{Win-rate ponderat (\(\text{metric}\)) a 12M passos (mateix pressupost, avaluació
+           sobre partides, valors finals). Entrenar sobre mans dispara els agents \ac{SB3},
+           però amb prou feines mou els de RLCard.}
   \label{tab:fase2-12m}
 \end{table}
 
@@ -264,52 +279,59 @@ d'ampolla passa a ser la transferència, no l'aprenentatge inicial.
   \centering
   \begin{tabular}{lrrr}
     \toprule
-    Agent & Control 24M & Curriculum (12M+12M) & $\Delta$ \\
+    Agent & Control 24M & Mans (fi etapa 1) & Partides (fi etapa 2) \\
     \midrule
-    DQN-RLCard  & 52{,}0\% & 22{,}2\% & $-29{,}8$ \\
-    NFSP-RLCard & 55{,}5\% & 60{,}0\% & $+4{,}5$ \\
-    DQN-SB3     & 60{,}5\% & 56{,}0\% & $-4{,}5$ \\
-    PPO-SB3     & 35{,}0\% & 75{,}0\% & $+40{,}0$ \\
+    DQN-RLCard  & 15{,}2\% & 17{,}5\% & 15{,}0\% \\
+    NFSP-RLCard & 22{,}2\% & 18{,}8\% & 19{,}8\% \\
+    DQN-SB3     & 54{,}0\% & \textbf{68{,}0\%} & 41{,}5\% \\
+    PPO-SB3     & 11{,}5\% & \textbf{84{,}8\%} & 7{,}8\% \\
     \bottomrule
   \end{tabular}
-  \caption{Comparació a 24M passos totals (control sencer vs curriculum complet). Només
-           PPO-SB3 i NFSP-RLCard milloren; DQN-RLCard col·lapsa per oblit catastròfic.}
+  \caption{Win-rate ponderat (\(\text{metric}\)), valors finals (fi de pressupost). La
+           columna «Mans» és el model en acabar l'etapa~1; «Partides», el model en acabar el
+           \emph{finetune} de l'etapa~2. El \emph{finetune} sobre partides degrada el model
+           fins per sota del control en els \ac{SB3}: el millor model disponible és el de
+           l'etapa de mans.}
   \label{tab:fase2-24m}
 \end{table}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{figures/fase2/curriculum_rlcard.pdf}
-  \caption{Corbes del \emph{curriculum} per als agents RLCard. La línia ratllada
-           és la fase de mans (pre-entrenament); la línia sòlida el \emph{finetune}
-           sobre partides. La línia puntejada marca la transició als 12M passos.
-           DQN-RLCard col·lapsa al \emph{finetune}; NFSP-RLCard recupera i millora
-           lleugerament.}
+  \caption{Corbes del \emph{curriculum} per als agents RLCard (win-rate ponderat). La línia
+           ratllada és l'etapa de mans (pre-entrenament); la sòlida, el \emph{finetune} sobre
+           partides; la puntejada marca la transició (12M passos). Els punts són avaluacions
+           periòdiques. Cap dels dos agents trenca el sostre estructural de RLCard:
+           NFSP-RLCard fa un pic breu a la transició i torna a caure.}
   \label{fig:fase2-curriculum-rlcard}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{figures/fase2/curriculum_sb3.pdf}
-  \caption{Corbes del \emph{curriculum} per als agents SB3. DQN-SB3 assoleix un pic
-           alt en mans (86\%) però perd rendiment al \emph{finetune}. PPO-SB3 manté
-           el nivell i tanca a 75\%, el millor resultat del treball fins al moment.}
+  \caption{Corbes del \emph{curriculum} per als agents SB3 (win-rate ponderat). Tots dos
+           assoleixen un rendiment alt en l'etapa de mans (DQN-SB3 fins al 68\%, PPO-SB3 fins
+           al 85\%), però el \emph{finetune} sobre partides el degrada: el màxim de l'etapa de
+           partides es dona al primer punt (herència de mans) i després cau (PPO-SB3 fins al
+           7{,}8\%).}
   \label{fig:fase2-curriculum-sb3}
 \end{figure}
 
-El cas més destacat és \textbf{PPO-SB3}, l'agent més feble de la Fase~1: passa del 35\%
-al 75\% amb el curriculum complet (+40~punts), el millor resultat del treball fins
-aleshores. Es valida que el problema de PPO no era l'algorisme sinó l'horitzó llarg amb
-recompensa diferida. En canvi, \textbf{DQN-RLCard} col·lapsa al \emph{finetune} (22{,}2\%):
-la seva implementació no integra bé la càrrega de pesos previs i, sense el \emph{self-play}
-regularitzador de la Fase~1, perd estabilitat.
+El cas de \textbf{PPO-SB3} il·lustra el patró: assoleix el 84{,}8\% sobre mans però, en
+passar a partides, el \emph{finetune} el desploma fins al 7{,}8\%. Es confirma així el risc
+anticipat d'\textbf{oblit catastròfic}: en ser \emph{on-policy}, PPO descarta ràpidament la
+base apresa a les mans quan la distribució de partides senceres domina l'entrenament. El
+mateix efecte, més suau, apareix a DQN-SB3 (68{,}0\% $\rightarrow$ 41{,}5\%).
 
-\paragraph{Decisió.} El \emph{curriculum learning} millora el rendiment, però de manera
-condicionada a l'agent: a igualtat de 12M passos tots quatre agents aprenen molt millor
-sobre mans, però després del \emph{finetune} només PPO-SB3 (massivament) i NFSP-RLCard
-(lleugerament) en surten beneficiats al pressupost total. El coll d'ampolla, doncs, és la
-\textbf{transferència} de mans a partides, no l'aprenentatge inicial; i el curriculum
-queda validat com a tècnica clau per a PPO-SB3.
+\paragraph{Decisió.} La Fase~2 deixa dues conclusions. Primera: l'entrenament sobre mans
+(etapa~1) és la tècnica que trenca el sostre de la Fase~1, però només per als agents amb
+capacitat suficient, els \ac{SB3}, que arriben al 84{,}8\% (PPO-SB3) i al 68{,}0\% (DQN-SB3)
+de win-rate ponderat. Aquests models de mans són el veritable lliurable del bloc. Segona: el
+\emph{finetune} sobre partides senceres, tal com està plantejat, no transfereix aquest
+aprenentatge i fins i tot el degrada; el coll d'ampolla ja no és l'aprenentatge inicial sinó
+el \textbf{segon entrenament}. Millorar-lo, perquè la competència tàctica adquirida a les
+mans es conservi i s'estengui a la gestió de la partida sencera, és precisament l'agenda del
+Bloc~2.
 
 \subsection{Checkpoint 1: models seleccionats}
 \label{sec:checkpoint1}
@@ -318,21 +340,21 @@ Tancades les Fases~1 i~2, cal decidir quins dels quatre models continuen a la re
 treball. El criteri combina el rendiment (\(\text{metric}\)) i el cost d'entrenament, i el
 resultat és clar: avancen els dos agents \ac{SB3} i es descarten els dos de RLCard.
 
-\textbf{PPO-SB3} és el gran beneficiari del curriculum i passa a ser el \emph{baseline} de
-referència. Del 35\% puja al 75\% amb el curriculum complet (el millor resultat del treball
-fins aleshores) i és el millor aprenent sobre mans (87,2\%), amb aproximadament la meitat
-del cost de DQN-SB3 ($\sim$40~min davant de $\sim$5,5~h per execució). La seva narrativa
-resumeix la lliçó del bloc: PPO no tenia un problema de capacitat sinó de senyal
-d'aprenentatge, i el curriculum el resol. La seva velocitat d'entrenament excel·lent
-permet, a més, iterar ràpidament a les fases següents. \textbf{DQN-SB3} es manté com a \emph{baseline}
-robust: és el millor sobre partides sense curriculum (60,5\%), té un sostre del 86,2\% sobre
-mans i representa la família dels algorismes basats en la funció de valor, el contrapunt
-natural a PPO; el
-seu cost ($\sim$5,5~h per execució) és assumible per als experiments llargs de les fases
-següents.
+\textbf{PPO-SB3} és el gran beneficiari de l'etapa de mans i passa a ser el \textbf{model de
+referència} del treball. De ser l'agent més feble de la Fase~1, amb l'entorn per mans arriba al
+84{,}8\% de win-rate ponderat, el guany més gran del bloc, i amb aproximadament la meitat del
+cost de DQN-SB3 ($\sim$40~min davant de $\sim$5,5~h per execució). La seva narrativa resumeix
+la lliçó del bloc: PPO no tenia un problema de capacitat sinó de senyal d'aprenentatge, i
+l'entorn per mans el resol. La seva velocitat d'entrenament excel·lent permet, a més, iterar
+ràpidament a les fases següents. \textbf{DQN-SB3} es manté com a \textbf{referència robusta}: és el
+millor sobre partides senceres sense curriculum (54,0\% de control a 24M), assoleix un
+68,0\% sobre mans i representa la família dels algorismes basats en la funció de valor, el
+contrapunt natural a PPO; el seu cost ($\sim$5,5~h per execució) és assumible per als
+experiments llargs de les fases següents.
 
-Es descarten, en canvi, els dos agents de RLCard. \textbf{DQN-RLCard} pateix un oblit
-catastròfic sever al \emph{finetune} (col·lapsa al 22\%) i és consistentment inferior a
-DQN-SB3 en tots els experiments. \textbf{NFSP-RLCard} és l'algorisme més lent
-($\sim$17~h per execució), no supera el 60\% de \(\text{metric}\) i no mostra cap
-escalabilitat amb més còmput: el benefici és massa modest per al cost.
+Es descarten, en canvi, els dos agents de RLCard. \textbf{DQN-RLCard} no trenca el sostre
+estructural de RLCard (es queda entorn del 15--17\% de \(\text{metric}\) final tant en
+control com amb curriculum) i és consistentment inferior a DQN-SB3 en tots els experiments.
+\textbf{NFSP-RLCard} és l'algorisme més lent ($\sim$17~h per execució), té un rendiment final
+baix (el pic transitori del 60\% a la transició no es manté) i no mostra cap escalabilitat
+amb més còmput: el benefici és massa modest per al cost.

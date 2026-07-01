@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__notebook-mcp__notebook_list_open",
+      "mcp__notebook-mcp__notebook_get_kernel_info",
+      "mcp__notebook-mcp__notebook_edit_cell",
+      "mcp__notebook-mcp__notebook_insert_cell",
+      "mcp__notebook-mcp__notebook_run_cell"
+    ]
+  }
+}
