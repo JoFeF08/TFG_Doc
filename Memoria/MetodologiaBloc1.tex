@@ -55,12 +55,12 @@ entrenament independent per a cada pressupost:
 \end{itemize}
 
 \emph{Oponents.} Cada agent s'entrena contra una barreja d'oponents
-(taula~\ref{tab:fase1-oponents}) amb un criteri comú: una petita fracció de
-l'agent aleatori (per mantenir diversitat i explorar estats poc habituals) i un gruix
-de l'agent basat en regles (el senyal estratègic principal). La diferència és el
+(taula~\ref{tab:fase1-oponents}) amb un criteri comú: una petita fracció de partides
+contra l'agent aleatori (per mantenir diversitat i explorar estats poc habituals) i el
+gruix contra l'agent basat en regles (el senyal estratègic principal). La diferència és el
 \emph{self-play}: els agents de RLCard (DQN i NFSP) el suporten de manera nativa, de manera
 que un 30\% de les partides es juguen contra una versió del propi agent, en canvi, els agents de \ac{SB3} no incorporen self-play. En el cas del DQN,
-aquesta versió és una còpia \emph{Polyak} que s'actualitza lentament (un 5\% cap als pesos  
+aquesta versió és una còpia \emph{Polyak} que s'actualitza lentament (un 5\% cap als pesos
 actuals cada 5\,000~passos): així l'oponent millora amb l'agent però no canvia tan de
 pressa com per desestabilitzar l'aprenentatge.
 
@@ -100,7 +100,8 @@ de l'entrenament (de 62{,}8\% a 36{,}5\%): la seva millor mètrica és molt supe
 final. PPO-SB3 és el més feble a igualtat de passos (29{,}5\%), perquè un algorisme
 on-policy necessita molts més passos per estabilitzar-se, però té una velocitat d'entrenament
 incomparable (taula~\ref{tab:fase1-throughput}): genera 36{,}5~milions de passos per hora,
-28~vegades més que NFSP. Aquest contrast fa que el rànquing canviï entre les dues òptiques.
+28~vegades més que NFSP. Aquest contrast fa que el rànquing canviï entre els dos
+pressupostos (figura~\ref{fig:fase1-corbes-ts}).
 El patró comú a tots els agents és la \textbf{inestabilitat}: regredeixen cap al final de
 l'entrenament, senyal que el problema (partida llarga, recompensa molt diferida) no
 proporciona un senyal d'aprenentatge prou estable.
@@ -145,10 +146,11 @@ proporciona un senyal d'aprenentatge prou estable.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{figures/fase1/corbes_ts.pdf}
-  \caption{Mètrica composta de la Fase~1 sota les dues òptiques d'avaluació.
-           A l'esquerra, rendiment als 5~M passos d'entrenament (eficiència per
-           mostra); a la dreta, rendiment al llarg de 4~hores de còmput per agent
-           (rendiment efectiu). DQN-SB3 lidera en ambdues, però el rànquing
+  \caption{Win-rate ponderat (\(\text{metric}\)) de la Fase~1 sota els dos pressupostos
+           d'entrenament. A l'esquerra, pressupost de passos (5~M passos, eficiència per
+           mostra); a la dreta, pressupost de temps (4~hores de còmput per agent, rendiment
+           efectiu). Cada punt és una avaluació periòdica de l'entrenament i la línia n'és la
+           mitjana mòbil centrada. DQN-SB3 lidera en ambdós, però el rànquing
            de la resta canvia: PPO-SB3 és el pitjor per passos però supera
            DQN-RLCard i NFSP-RLCard per temps gràcies a la seva velocitat d'entrenament.}
   \label{fig:fase1-corbes-ts}
