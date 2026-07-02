@@ -1,0 +1,218 @@
+%!TeX root=MemoriaTFG.tex
+
+\chapter{Resultats}
+\label{cap:resultats}
+
+Aquest capítol analitza el comportament del model adoptat per a desplegament
+(Checkpoint~3, secció~\ref{sec:checkpoint3}) a dos nivells. Primer, una anàlisi
+\textbf{quantitativa}: es simulen milers de partides contra oponents de referència i es
+registra cada decisió del model amb el seu context (força de la mà, punts d'envit, ronda i
+marcador), per caracteritzar el seu estil emergent. Segon, una avaluació \textbf{qualitativa}
+del comportament mitjançant una rúbrica pensada per ser omplerta jugant-hi.
+
+\section{Anàlisi quantitativa del model desplegat}
+\label{sec:res-quantitativa}
+
+\emph{Metodologia.} S'han simulat 1\,000~partides senceres balancejades per posició contra
+cada oponent: l'agent aleatori, les sis variants de l'agent de regles i el model contra si
+mateix (\emph{self}); en total, 8\,000~partides i 107\,620~decisions del model. A cada torn
+s'ha registrat l'acció triada i el seu context, i com que el model és determinista en
+avaluació (tria l'acció de probabilitat màxima), també la \textbf{distribució de
+probabilitats} que la xarxa assigna a les accions. Això permet distingir el que el model
+\emph{fa} (freqüència realitzada) del que ha \emph{après} (probabilitat tova), un matís
+rellevant perquè la seva política és poc entròpica. Per no confondre la freqüència d'una
+acció amb la seva disponibilitat, totes les propensions es condicionen a què l'acció sigui
+\textbf{legal} i al \textbf{context de decisió} (obrir, respondre o reapujar), tractant truc
+i envit per separat. Com a línia de comparació es registra el comportament de l'agent de
+regles equilibrat.
+
+\paragraph{Rendiment per oponent.} El model bat tots els oponents del pool amb marge i, com
+era d'esperar, empata contra si mateix (taula~\ref{tab:res-rendiment}). Domina l'agent
+aleatori (90{,}4\%) i guanya de forma consistent a totes les variants de regles (entre el
+55{,}0\% de l'agressiu i el 74{,}8\% del conservador), amb un diferencial de punts ampli en
+tots els casos. L'empat contra si mateix (49{,}8\%) és el senyal esperat d'una política
+estable: cap còpia del model no s'explota sistemàticament a si mateixa.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{lrrr}
+    \toprule
+    Oponent & Win-rate & Punts model & Punts rival \\
+    \midrule
+    Aleatori     & 90{,}4\% & 28{,}2 &  5{,}1 \\
+    Conservador  & 74{,}8\% & 24{,}3 &  8{,}9 \\
+    Agressiu     & 55{,}0\% & 19{,}1 & 13{,}9 \\
+    Truc-bot     & 62{,}7\% & 20{,}4 & 10{,}5 \\
+    Envit-bot    & 71{,}1\% & 23{,}7 & 11{,}9 \\
+    Faroler      & 61{,}5\% & 20{,}0 & 11{,}9 \\
+    Equilibrat   & 71{,}1\% & 22{,}3 &  9{,}8 \\
+    \emph{Self}  & 49{,}8\% & 12{,}8 & 12{,}9 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Rendiment del model desplegat per oponent (1\,000~partides balancejades
+           cadascun). Punts: mitjana per partida a favor del model i del rival.}%
+  \label{tab:res-rendiment}
+\end{table}
+
+El model és, a més, poc predictible: la política manté una entropia mitjana de 0{,}81~nats
+(mediana 0{,}78) sobre un màxim de 1{,}79 per a sis accions, i només el 9\% de les decisions
+són quasi-deterministes. Aquesta barreja d'accions és coherent amb la proximitat a
+l'equilibri mesurada al Checkpoint~3: una política mixta és, per definició, menys explotable
+que una de purament determinista.
+
+\paragraph{Estratègia de truc: el farol com a eina.} La decisió de truc està
+\textbf{desacoblada de la força de la mà}. El mapa de calor esquerre de la
+figura~\ref{fig:res-condicionada} mostra que la probabilitat d'obrir truc és \emph{més alta}
+amb mà feble (fins al 74{,}9\% quan els punts d'envit són baixos) que amb mà forta o molt
+forta (27--40\%): és a dir, el model \emph{farola} sistemàticament amb les cartes pitjors i
+es torna cautelós amb les bones. El boxplot esquerre ho confirma des de l'altre angle: la
+força de la mà quan el model obre truc (mediana 0{,}50) és pràcticament idèntica a quan
+simplement juga una carta (0{,}49), de manera que obrir truc no aporta cap informació sobre
+la qualitat de la mà. Aquesta indistingibilitat és precisament el que fa el farol difícil de
+llegir. A més, dins de cada nivell de força, l'agressió al truc \emph{baixa} a mesura que
+puja la puntuació d'envit disponible (amb mà feble, del 74{,}9\% al 47{,}8\%): quan la mà té
+valor d'envit, el model la reserva per a l'envit en lloc de comprometre-la al truc. En
+resposta, no es retira mai davant un truc cantat (l'accepta el 100\% de les vegades, davant
+el 30{,}3\% de l'agent de regles) i el reapuja sovint (58{,}7\% davant el 8{,}5\%), fins i
+tot amb mans febles (mediana de força 0{,}39 quan accepta).
+
+\paragraph{Estratègia d'envit: selecció per punts.} L'envit segueix la lògica
+\emph{oposada} a la del truc: està fortament condicionat a la qualitat de la mà d'envit. El
+mapa de calor dret de la figura~\ref{fig:res-condicionada} mostra que la probabilitat d'obrir
+envit creix de manera monòtona amb els punts d'envit (del 6\% amb punts baixos fins al
+32{,}8\% amb punts alts per a una mà feble de truc) i és pràcticament nul·la quan els punts
+són baixos. Hi apareix, a més, un segon eix de lectura: per a un mateix nivell de punts,
+obrir envit \emph{disminueix} com més forta és la mà de truc (amb punts alts, del 32{,}8\%
+amb mà feble al 16{,}0\% amb mà molt forta). La combinació dels dos mapes de calor revela el
+mecanisme de fons, una autèntica \textbf{divisió del treball}: cada mà s'encamina cap al
+canal on val més. Una mà amb cartes fortes va al truc; una mà amb molts punts, a l'envit; i
+una mà pobra en tots dos sentits alimenta el farol al truc. Així, el truc i l'envit rarament
+competeixen per la mateixa mà. El boxplot dret ho quantifica: quan el model obre envit té una
+puntuació mediana de 29~punts (a prop del màxim de 35), mentre que quan es retira de l'envit
+la mediana cau a 6~punts. En freqüència realitzada, obre envit menys sovint que l'agent de
+regles (23{,}7\% davant el 40{,}4\%) però l'accepta molt més (70{,}8\% davant el 39{,}7\%):
+és selectiu obrint, però rarament rebutja el repte.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figures/resultats/accio_x_forca.pdf}\\[4pt]
+  \includegraphics[width=\textwidth]{figures/resultats/forca_x_accio.pdf}
+  \caption{Política condicionada a la qualitat de la mà. A dalt, probabilitat d'obrir truc
+           (esquerra) i d'obrir envit (dreta) segons la força de la mà (files) i els punts
+           d'envit (columnes). A baix, distribució de la força de la mà per a les decisions
+           de truc (esquerra) i dels punts d'envit per a les decisions d'envit (dreta). El
+           truc és independent de la força (farol); l'envit hi està fortament lligat.}%
+  \label{fig:res-condicionada}
+\end{figure}
+
+\paragraph{Comportament contextual.} Dins d'una mà, l'agressió al truc \emph{s'escala}
+amb la ronda (figura~\ref{fig:res-contextual}, esquerra): el model obre truc el
+40{,}6\% dels torns de primera ronda quan va de mà (33{,}3\% de segon), puja fins al
+85{,}1\%/87{,}4\% a la segona ronda i arriba gairebé al màxim (96{,}9\%/97{,}4\%) a la
+tercera. La posició (mà o segon) només és rellevant a la primera ronda; a partir de la
+segona, el model aposta truc gairebé sempre, independentment de la posició. En canvi,
+\textbf{no adapta} l'agressió al marcador (figura~\ref{fig:res-contextual}, dreta): aposta
+truc al voltant del 50\% de forma pràcticament plana tant si va per darrere (49{,}8\%),
+igualat (51{,}9\%) o per davant (51{,}4\%). Aquesta indiferència al marcador és, alhora, una
+limitació estratègica (no aprofita situacions de partida) i un tret coherent amb una política
+propera a l'equilibri: adaptar l'agressió a la puntuació introduiria patrons explotables.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figures/resultats/contextual.pdf}
+  \caption{Comportament contextual del truc. Esquerra: propensió a obrir truc segons el
+           número de ronda dins la mà, per posició. Dreta: propensió a obrir truc segons la
+           situació al marcador. L'agressió escala amb la ronda però és plana respecte al
+           marcador.}%
+  \label{fig:res-contextual}
+\end{figure}
+
+\section{Avaluació qualitativa del comportament}
+\label{sec:res-qualitativa}
+
+L'anàlisi quantitativa caracteritza \emph{què} fa el model, però no si el seu joc resulta
+\emph{creïble} per a una persona. Per avaluar-ho s'ha dissenyat una rúbrica
+(taula~\ref{tab:res-rubrica}), pensada per ser omplerta observant partides senceres del
+model desplegat. La rúbrica es fixa \textbf{abans} de l'avaluació, per evitar el biaix de
+racionalitzar el comportament observat, i puntua vuit criteris en una escala d'1 (molt
+deficient) a 5 (excel·lent, indistingible d'un jugador humà fort).
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{cl}
+    \toprule
+    \# & Criteri \\
+    \midrule
+    C1 & Gestió de l'envit \\
+    C2 & Credibilitat del farol \\
+    C3 & \emph{Timing} del truc \\
+    C4 & Resposta a l'agressió \\
+    C5 & Coherència amb les cartes \\
+    C6 & Adaptació al marcador \\
+    C7 & Absència d'errors greus \\
+    C8 & Sensació global \\
+    \bottomrule
+  \end{tabular}
+  \caption{Rúbrica d'avaluació qualitativa del comportament (escala 1--5 per criteri),
+           fixada abans de la fase de joc.}%
+  \label{tab:res-rubrica}
+\end{table}
+
+\paragraph{Hipòtesi prèvia.} L'anàlisi quantitativa permet formular una predicció. La manca
+d'adaptació al marcador (agressió de truc quasi plana en totes les situacions) hauria de
+traduir-se en una puntuació baixa a l'\textbf{adaptació al marcador} (C6). El farol
+sistemàtic al truc, sumat a l'escalada llegible de l'agressió per rondes, fa preveure una
+puntuació baixa a la \textbf{credibilitat del farol} (C2): és un patró coherent, però prou
+regular per resultar predictible. En canvi, la gestió selectiva de l'envit (obertura només
+amb punts alts i acceptació freqüent del repte) hauria de puntuar positivament a la
+\textbf{gestió de l'envit} (C1).
+
+\paragraph{Procediment.} Una validació sistemàtica amb jugadors humans queda fora de l'abast
+d'aquest treball. En el seu lloc, la rúbrica s'ha completat de manera \textbf{automàtica}
+mitjançant un model de llenguatge gran (LLM) com a jutge (\emph{LLM-as-judge}) sobre
+250~partides senceres del model desplegat contra el pool d'oponents (equilibrat, agressiu,
+faroler, conservador i aleatori), balancejades per posició. A diferència d'un observador
+humà, el jutge disposa de la \textbf{mà real} del model a cada decisió, de manera que pot
+identificar sense ambigüitat els farols (truc apostat amb mà feble). Es tracta, doncs, d'un
+\textbf{indicador automàtic}, no d'una validació amb persones, i s'ha de llegir com a
+complement de l'anàlisi quantitativa, no com a substitut.
+
+\paragraph{Resultats.} El
+model puntua alt en \textbf{gestió de l'envit} (C1, nota~4): obre i accepta l'envit segons
+els punts, de manera coherent. En canvi, cau en \textbf{adaptació al marcador} (C6, nota~1),
+que és nul·la, i en \textbf{credibilitat del farol} i \textbf{\emph{timing} del truc}
+(C2 i~C3, nota~2): el farol al truc és tan sistemàtic (aposta i reapuja fins i tot amb les
+mans més febles) que esdevé predictible. La nota global és de 2{,}5 sobre~5.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{clc}
+    \toprule
+    \# & Criteri & Nota (1--5) \\
+    \midrule
+    C1 & Gestió de l'envit        & 4 \\
+    C2 & Credibilitat del farol   & 2 \\
+    C3 & \emph{Timing} del truc   & 2 \\
+    C4 & Resposta a l'agressió    & 3 \\
+    C5 & Coherència amb les cartes& 3 \\
+    C6 & Adaptació al marcador    & 1 \\
+    C7 & Absència d'errors greus  & 2 \\
+    C8 & Sensació global          & 3 \\
+    \midrule
+    \multicolumn{2}{l}{\textbf{Mitjana}} & \textbf{2{,}5} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Notes de la rúbrica (avaluació automàtica \emph{LLM-as-judge} sobre 250~partides
+           senceres simulades del model desplegat contra el pool).}%
+  \label{tab:res-notes}
+\end{table}
+
+El contrast entre partides guanyades i perdudes és el més il·lustratiu. Contra les
+heurístiques del pool, que es pleguen davant l'agressió, el farol constant funciona i el
+model guanya amb marge; però en les partides que perd, l'oponent \emph{paga} els farols i les
+mans febles del model acaben cedint la partida sencera. Aquesta és, precisament, l'escletxa
+que un jugador humà atent explotaria: pagar el truc i esperar. La conclusió tanca el capítol
+amb un matís important: un agent \textbf{estadísticament proper a l'equilibri no equival a un
+rival creïble i inexplotable per a una persona}. La força del model desplegat prové d'un
+farol al truc que domina els oponents fixos però que és llegible; la seva gestió de l'envit,
+en canvi, és genuïnament sòlida.
