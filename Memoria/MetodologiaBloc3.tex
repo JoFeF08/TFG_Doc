@@ -108,7 +108,7 @@ es validen (taula~\ref{tab:fase5-resum}).
   \caption{Evolució de la \(\text{metric}\) (esquerra) i la \(\text{metric\_robust}\)
            (dreta) al llarg de 48M passos. Línia discontínua: F4-ablació-48M (sense
            self-play); línia sòlida: F5-selfplay. La \(\text{metric}\) és pràcticament
-           idèntica (H1), però la \(\text{metric\_robust}\) de F5 creix de forma sostenuda
+           idèntica (H1), però la \(\text{metric\_robust}\) de F5 creix de forma sostinguda
            i supera àmpliament la de F4 (H2).}
   \label{fig:fase5-corbes}
 \end{figure}
@@ -139,30 +139,6 @@ es validen (taula~\ref{tab:fase5-resum}).
   \label{tab:fase5-resum}
 \end{table}
 
-\begin{table}[H]
-  \centering
-  \begin{tabular}{lrrr}
-    \toprule
-    Variant & F4-ablació & F5-selfplay & $\Delta$ \\
-    \midrule
-    Conservador & 75{,}0\% & 55{,}0\% & $-20{,}0$ \\
-    Agressiu    & 55{,}0\% & 80{,}0\% & $+25{,}0$ \\
-    Truc-bot    & 55{,}0\% & 85{,}0\% & $+30{,}0$ \\
-    Envit-bot   & 80{,}0\% & 85{,}0\% & $+5{,}0$ \\
-    Faroler     & 50{,}0\% & 80{,}0\% & $+30{,}0$ \\
-    Equilibrat  & 80{,}0\% & 90{,}0\% & $+10{,}0$ \\
-    \midrule
-    \(\overline{\text{wr}}_{\text{pool}}\) & 65{,}8\% & 79{,}2\% & $+13{,}4$ \\
-    \(\operatorname{std}_{\text{pool}}\)   & 12{,}7\% & 11{,}3\% & $-1{,}4$ \\
-    \(\text{metric\_robust}\)              & 59{,}5\% & 73{,}5\% & $+14{,}0$ \\
-    \bottomrule
-  \end{tabular}
-  \caption{Win-rate per variant del pool: F4-ablació vs F5-selfplay (models seleccionats).
-           El self-play apuja tots els valors baixos i redueix la dispersió; el descens
-           contra l'estil conservador és el reequilibri esperat.}
-  \label{tab:fase5-variants}
-\end{table}
-
 \emph{H1 --- \(\text{metric}\) sense degradació.} \textbf{Valida.} F5 assoleix
 89{,}2\% (figura~\ref{fig:fase5-corbes}, esquerra), pràcticament idèntic al 89{,}0\%
 de F4, molt per sobre del llindar de 86{,}0\%.
@@ -180,9 +156,9 @@ L'auto-explotabilitat final = 4{,}7~pp, molt per sota del llindar de 10~pp.
 robustesa sense perjudicar el rendiment global. Tanmateix, la dispersió entre estils
 (\(\operatorname{std}_{\text{pool}}\)) no baixa de manera clara (11{,}3\% vs
 12{,}7\%): el PPO continua especialitzant-se i des-especialitzant-se sense arribar a
-una estratègia d'equilibri estable. La causa és que el \ac{FSP}
+una estratègia d'equilibri estable. La causa probable és que el \ac{FSP}
 simplificat no té cap component que aproximi la política \emph{promig} de l'historial
-complet; sense aquesta àncora, el PPO cicla. El component que l'hi aporta és la
+complet; sense aquesta àncora, el PPO tendeix a ciclar (alternar entre millors respostes sense convergir a una estratègia estable). El component que l'hi aporta és la
 xarxa de política mitjana del \ac{NFSP} complet, que s'implementa a la Fase~6.
 
 \subsection{Fase 6: \ac{NFSP} complet}

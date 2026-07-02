@@ -332,9 +332,9 @@ posició dins la sessió} (de la mà~1 a la~5) per detectar si l'agent millora a
 coneix l'oponent.
 
 \paragraph{Resultats.} Cap de les tres hipòtesis es valida plenament
-(taula~\ref{tab:fase4}). Les figures~\ref{fig:fase4-corbes} i~\ref{fig:fase4-barplot}
-mostren l'evolució i els pics del win-rate ponderat (\(\text{metric}\)); la figura~\ref{fig:fase4-adaptacio}
-detalla el win-rate per posició dins la sessió, clau per a H2.
+(taula~\ref{tab:fase4}). La figura~\ref{fig:fase4-corbes} mostra l'evolució del win-rate
+ponderat (\(\text{metric}\)); la figura~\ref{fig:fase4-adaptacio} detalla el win-rate per
+posició dins la sessió, clau per a H2.
 
 \begin{figure}[H]
   \centering
@@ -344,15 +344,6 @@ detalla el win-rate per posició dins la sessió, clau per a H2.
            línies base de la Fase~3.5 (sense pool); línies sòlides: entrenaments amb pool; gruix
            addicional: model amb \ac{LSTM}. La línia puntejada gris marca el 85\%.}
   \label{fig:fase4-corbes}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{figures/fase4/fase4_barplot.pdf}
-  \caption{Pic de \(\text{metric}\) per a cada run, tots tallats al pressupost comú de 12M
-           passos. DQN~frozen assoleix 87{,}8\% dins el pressupost; el seu pic global és
-           91{,}2\% a 23M passos.}
-  \label{fig:fase4-barplot}
 \end{figure}
 
 \begin{figure}[H]
